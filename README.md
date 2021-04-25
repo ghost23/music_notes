@@ -1,4 +1,6 @@
-# music_notes_2
+# music_notes
+
+This is in its infancy, so nothing works yet :)
 
 A new Flutter project.
 
