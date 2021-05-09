@@ -40,7 +40,7 @@ class _MyHomePageState extends State<MyHomePage> {
           alignment: Alignment.center,
           width: 600,
           height: 500,
-          child: MusicLine(fontSize: FONT_SIZE, staffs: [Clefs.f, Clefs.g],)
+          child: MusicLine(fontSize: FONT_SIZE, staffs: [Clefs.g, Clefs.f],)
         ),
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );

@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:music_notes_2/notes/generated/glyph-definitions.dart';
 
 import 'glyph-table.dart';
 
@@ -27,6 +28,24 @@ const Map<NoteLength, String> _singleNoteUpByLength = {
   NoteLength.thirtysecond: note32ndUp,
 };
 
+const Map<NoteLength, Glyph> singleNoteUpByLength = {
+  NoteLength.full: Glyph.noteWhole,
+  NoteLength.half: Glyph.noteHalfUp,
+  NoteLength.quarter: Glyph.noteQuarterUp,
+  NoteLength.eigth: Glyph.note8thUp,
+  NoteLength.sixteenth: Glyph.note16thUp,
+  NoteLength.thirtysecond: Glyph.note32ndUp,
+};
+
+const Map<NoteLength, Glyph> singleNoteHeadByLength = {
+  NoteLength.full: Glyph.noteheadWhole,
+  NoteLength.half: Glyph.noteheadHalf,
+  NoteLength.quarter: Glyph.noteheadBlack,
+  NoteLength.eigth: Glyph.noteheadBlack,
+  NoteLength.sixteenth: Glyph.noteheadBlack,
+  NoteLength.thirtysecond: Glyph.noteheadBlack,
+};
+
 const Map<NoteLength, String> _singleNoteDownByLength = {
   NoteLength.full: noteWhole,
   NoteLength.half: noteHalfDown,
@@ -34,6 +53,15 @@ const Map<NoteLength, String> _singleNoteDownByLength = {
   NoteLength.eigth: note8thDown,
   NoteLength.sixteenth: note16thDown,
   NoteLength.thirtysecond: note32ndDown,
+};
+
+const Map<NoteLength, Glyph> singleNoteDownByLength = {
+  NoteLength.full: Glyph.noteWhole,
+  NoteLength.half: Glyph.noteHalfDown,
+  NoteLength.quarter: Glyph.noteQuarterDown,
+  NoteLength.eigth: Glyph.note8thDown,
+  NoteLength.sixteenth: Glyph.note16thDown,
+  NoteLength.thirtysecond: Glyph.note32ndDown,
 };
 
 const Map<BaseTones, int> _numericValueOfBaseTone = {
@@ -61,6 +89,13 @@ const Map<Accidentals, String> _accidentalStringMap = {
   Accidentals.natural: accidentalNatural,
   Accidentals.sharp: accidentalSharp,
   Accidentals.flat: accidentalFlat,
+};
+
+const Map<Accidentals, Glyph> accidentalGlyphMap = {
+  Accidentals.none: null,
+  Accidentals.natural: Glyph.accidentalNatural,
+  Accidentals.sharp: Glyph.accidentalSharp,
+  Accidentals.flat: Glyph.accidentalFlat,
 };
 
 ///Whenever you see something with 'numericValue' in it, it is a representation
@@ -102,14 +137,15 @@ Accidentals _accidentalFromNumericValue(int value, bool preferSharp) {
 /// like notes, accidentals, legers, articulation glyphs, etc.
 /// It is more a positional info object. Maybe we should not actually call it Note?!
 class Note {
-  const Note({this.tone, this.accidental = Accidentals.none, this.octave});
+  const Note({this.tone, this.length, this.accidental = Accidentals.none, this.octave});
 
   final BaseTones tone;
   final Accidentals accidental;
   /// 0 = C, 1 = c, 2 = c', etc.
   final int octave;
+  final NoteLength length;
 
-  Note.fromNumericValue(int value, bool preferSharp) :
+  Note.fromNumericValue(int value, this.length, bool preferSharp) :
       octave = (value / 12).floor(),
       tone = _baseToneFromNumericValue(value, preferSharp),
       accidental = _accidentalFromNumericValue(value, preferSharp);
@@ -132,9 +168,27 @@ class Note {
   @override
   bool operator ==(Object other) {
     return other is Note &&
-      other.tone == tone &&
-      other.accidental == accidental &&
-      other.octave == octave;
+      numericValue() == other.numericValue();
+  }
+
+  bool operator >(Object other) {
+    return other is Note &&
+    numericValue() > other.numericValue();
+  }
+
+  bool operator >=(Object other) {
+    return other is Note &&
+        numericValue() >= other.numericValue();
+  }
+
+  bool operator <(Object other) {
+    return other is Note &&
+        numericValue() < other.numericValue();
+  }
+
+  bool operator <=(Object other) {
+    return other is Note &&
+        numericValue() <= other.numericValue();
   }
 
   @override
@@ -149,7 +203,7 @@ class Note {
 
 /// We use the following two maps to specify the general accidentals for
 /// all major and minor tone scales for the g clef and the f clef.
-const Map<MainTones, List<Note>> _mainToneAccidentalsMapForGClef = {
+const Map<MainTones, List<Note>> mainToneAccidentalsMapForGClef = {
   MainTones.G_E: [
     Note(tone: BaseTones.F, octave: 3, accidental: Accidentals.sharp),
   ],
@@ -210,7 +264,7 @@ const Map<MainTones, List<Note>> _mainToneAccidentalsMapForGClef = {
   ],
 };
 
-const Map<MainTones, List<Note>> _mainToneAccidentalsMapForFClef = {
+const Map<MainTones, List<Note>> mainToneAccidentalsMapForFClef = {
   MainTones.G_E: [
     Note(tone: BaseTones.F, octave: 1, accidental: Accidentals.sharp),
   ],
@@ -296,7 +350,7 @@ class MusicContext {
   static String _mainAccidentals(Clefs clef, MainTones mainTone) {
     if(mainTone == MainTones.C_A) return '';
 
-    List<Note> accidentals = clef == Clefs.g ? _mainToneAccidentalsMapForGClef[mainTone] : _mainToneAccidentalsMapForFClef[mainTone];
+    List<Note> accidentals = clef == Clefs.g ? mainToneAccidentalsMapForGClef[mainTone] : mainToneAccidentalsMapForFClef[mainTone];
     return accidentals.fold('', (result, note) => result + '$staff5LinesNarrow${_notePrefix(clef, note)}${_accidentalStringMap[note.accidental]}${__conditionalSpace(clef, note, '-')}');
   }
 
@@ -343,7 +397,7 @@ class MusicContext {
     }
 
     String localAccidental = '';
-    List<Note> alreadyAppliedAccidentals = clef == Clefs.g ? _mainToneAccidentalsMapForGClef[mainTone] : _mainToneAccidentalsMapForFClef[mainTone];
+    List<Note> alreadyAppliedAccidentals = clef == Clefs.g ? mainToneAccidentalsMapForGClef[mainTone] : mainToneAccidentalsMapForFClef[mainTone];
     final alreadyAppliedAccidentalExists = alreadyAppliedAccidentals.any((accidental) => accidental.tone == note.tone && (accidental.accidental == note.accidental || note.accidental == Accidentals.natural));
     if((!alreadyAppliedAccidentalExists && note.accidental != Accidentals.natural) || (alreadyAppliedAccidentalExists && note.accidental == Accidentals.natural)) {
       localAccidental = '$staff5LinesNarrow${_notePrefix(clef, note)}${_accidentalStringMap[note.accidental]}${_conditionalSpace(note, '-')}';
@@ -372,7 +426,7 @@ class MusicContext {
   MusicContext _attachLine(String currentLine) =>
     MusicContext(clef: clef, mainTone: mainTone, currentLine: this.currentLine + currentLine);
 
-  /// Because of this you can just throw you MusicContext in any String. I love it.
+  /// Because of this you can just throw your MusicContext in any String. I love it.
   @override
   String toString() {
     return currentLine;
@@ -415,7 +469,7 @@ String _notePrefix(Clefs clef, Note note) {
   if(note.accidental != Accidentals.none) {
     note = Note(tone: note.tone, octave: note.octave);
   }
-  int diff;
+  int diff = 0;
   if(clef == Clefs.g) {
     /// For g clef we allow notes between small a and small c''' inclusively
     assert(note.octave > 1 || (note.octave == 1 && (note.tone == BaseTones.A || note.tone == BaseTones.B)));
