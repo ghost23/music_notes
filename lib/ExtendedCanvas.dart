@@ -7,9 +7,8 @@ import 'dart:ui';
 /// translation: https://github.com/flutter/flutter/issues/38721
 class XCanvas implements Canvas {
   Point _currentTranslation;
-  Canvas _canvas;
-  XCanvas(Canvas canvas) {
-    _currentTranslation = Point(0,0);
+  late Canvas _canvas;
+  XCanvas(Canvas canvas): _currentTranslation = Point(0,0) {
     _canvas = canvas;
   }
 
@@ -44,7 +43,7 @@ class XCanvas implements Canvas {
   }
 
   @override
-  void drawAtlas(Image atlas, List<RSTransform> transforms, List<Rect> rects, List<Color> colors, BlendMode blendMode, Rect cullRect, Paint paint) {
+  void drawAtlas(Image atlas, List<RSTransform> transforms, List<Rect> rects, List<Color>? colors, BlendMode? blendMode, Rect? cullRect, Paint paint) {
     _canvas.drawAtlas(atlas, transforms, rects, colors, blendMode, cullRect, paint);
   }
 
@@ -119,7 +118,7 @@ class XCanvas implements Canvas {
   }
 
   @override
-  void drawRawAtlas(Image atlas, Float32List rstTransforms, Float32List rects, Int32List colors, BlendMode blendMode, Rect cullRect, Paint paint) {
+  void drawRawAtlas(Image atlas, Float32List rstTransforms, Float32List rects, Int32List? colors, BlendMode? blendMode, Rect? cullRect, Paint paint) {
     _canvas.drawRawAtlas(atlas, rstTransforms, rects, colors, blendMode, cullRect, paint);
   }
 
@@ -164,12 +163,12 @@ class XCanvas implements Canvas {
   }
 
   @override
-  void saveLayer(Rect bounds, Paint paint) {
+  void saveLayer(Rect? bounds, Paint paint) {
     _canvas.saveLayer(bounds, paint);
   }
 
   @override
-  void scale(double sx, [double sy]) {
+  void scale(double sx, [double? sy]) {
     _canvas.scale(sx, sy);
   }
 

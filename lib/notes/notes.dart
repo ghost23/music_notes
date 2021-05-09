@@ -1,5 +1,4 @@
-import 'package:music_notes_2/notes/generated/glyph-definitions.dart';
-import 'glyph-table.dart';
+import 'generated/glyph-definitions.dart';
 
 enum Clefs { g, f }
 enum TimeSignatures { threeFour, fourFour }
@@ -11,15 +10,6 @@ enum MainTones { C_A, G_E, D_B, A_Fsharp, E_Csharp, B_Gsharp, Gflat_Eflat, Dflat
 enum BaseTones { C, D, E, F, G, A, B }
 
 enum NoteLength { full, half, quarter, eigth, sixteenth, thirtysecond }
-
-const Map<NoteLength, String> _singleNoteUpByLength = {
-  NoteLength.full: noteWhole,
-  NoteLength.half: noteHalfUp,
-  NoteLength.quarter: noteQuarterUp,
-  NoteLength.eigth: note8thUp,
-  NoteLength.sixteenth: note16thUp,
-  NoteLength.thirtysecond: note32ndUp,
-};
 
 const Map<NoteLength, Glyph> singleNoteUpByLength = {
   NoteLength.full: Glyph.noteWhole,
@@ -67,15 +57,7 @@ const Map<Accidentals, int> _numericValueOfAccidental = {
   Accidentals.natural: 0,
 };
 
-
-const Map<Accidentals, String> _accidentalStringMap = {
-  Accidentals.none: '',
-  Accidentals.natural: accidentalNatural,
-  Accidentals.sharp: accidentalSharp,
-  Accidentals.flat: accidentalFlat,
-};
-
-const Map<Accidentals, Glyph> accidentalGlyphMap = {
+const Map<Accidentals, Glyph?> accidentalGlyphMap = {
   Accidentals.none: null,
   Accidentals.natural: Glyph.accidentalNatural,
   Accidentals.sharp: Glyph.accidentalSharp,
@@ -123,11 +105,11 @@ Accidentals _accidentalFromNumericValue(int value, bool preferSharp) {
 class Note {
   const Note({this.tone, this.length, this.accidental = Accidentals.none, this.octave});
 
-  final BaseTones tone;
+  final BaseTones? tone;
   final Accidentals accidental;
   /// 0 = C, 1 = c, 2 = c', etc.
-  final int octave;
-  final NoteLength length;
+  final int? octave;
+  final NoteLength? length;
 
   Note.fromNumericValue(int value, this.length, bool preferSharp) :
       octave = (value / 12).floor(),
@@ -139,14 +121,14 @@ class Note {
   }
 
   int numericValue() {
-    return octave * 12 + (_numericValueOfBaseTone[tone] + _numericValueOfAccidental[accidental]);
+    return octave! * 12 + (_numericValueOfBaseTone[tone!]! + _numericValueOfAccidental[accidental]!);
   }
 
   /// positional value is a value to determine where on a stave a note should be put.
   /// So here we only care about the "white keys"-notes, which I called BaseNotes up above.
   /// That's why an octave here has only 7 notes in it.
   int positionalValue() {
-    return octave * 7 + BaseTones.values.indexOf(tone);
+    return octave! * 7 + BaseTones.values.indexOf(tone!);
   }
 
   @override

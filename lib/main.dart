@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:music_notes_2/notes/notes.dart';
+import 'notes/notes.dart';
 import 'notes/music-line.dart';
 
-const double FONT_SIZE = 72;
+const double STAFF_HEIGHT = 72;
 
 void main() {
   runApp(MyApp());
@@ -23,7 +23,7 @@ class MyApp extends StatelessWidget {
 }
 
 class MyHomePage extends StatefulWidget {
-  MyHomePage({Key key}) : super(key: key);
+  MyHomePage({Key? key}) : super(key: key);
 
   @override
   _MyHomePageState createState() => _MyHomePageState();
@@ -40,7 +40,7 @@ class _MyHomePageState extends State<MyHomePage> {
           alignment: Alignment.center,
           width: 600,
           height: 500,
-          child: MusicLine(fontSize: FONT_SIZE, staffs: [Clefs.g, Clefs.f],)
+          child: MusicLine(options: MusicLineOptions(STAFF_HEIGHT, STAFF_HEIGHT), staffs: [Clefs.g, Clefs.f],)
         ),
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
