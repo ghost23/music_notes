@@ -109,9 +109,6 @@ class BackgroundPainter extends CustomPainter {
       xCanvas.translate(0, -options.staffHeight - staffsSpacing);
     }
 
-    paintBarLine(xCanvas, size, options.staffHeight, staffs, staffsSpacing,
-        BarLineTypes.heavyHeavy, false);
-
     xCanvas.restore();
   }
 
