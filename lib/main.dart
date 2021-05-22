@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
-import 'notes/notes.dart';
+import 'package:flutter/services.dart' show rootBundle;
+import 'package:xml/xml.dart';
+import 'musicXML/data.dart';
 import 'notes/music-line.dart';
+
+Future<XmlDocument> loadXML() async {
+  final rawFile = await rootBundle.loadString('assets/hanon-no1-stripped.musicxml');
+  return XmlDocument.parse(rawFile);
+}
 
 const double STAFF_HEIGHT = 72;
 
@@ -40,7 +47,7 @@ class _MyHomePageState extends State<MyHomePage> {
           alignment: Alignment.center,
           width: 600,
           height: 500,
-          child: MusicLine(options: MusicLineOptions(STAFF_HEIGHT, STAFF_HEIGHT), staffs: [Clefs.g, Clefs.f],)
+          child: MusicLine(options: MusicLineOptions(STAFF_HEIGHT, STAFF_HEIGHT), staffs: [Clefs.G, Clefs.F],)
         ),
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );

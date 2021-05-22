@@ -3,14 +3,15 @@ import 'package:flutter/material.dart';
 import 'common.dart';
 import 'glyph.dart';
 import '../notes.dart';
-import '../../ExtendedCanvas.dart';
 import '../generated/engraving-defaults.dart';
 import '../generated/glyph-advance-widths.dart';
+import '../../ExtendedCanvas.dart';
+import '../../musicXML/data.dart';
 
-paintLedgers(XCanvas canvas, Size size, double staffHeight, Clefs staff, MainTones tone, Note note) {
+paintLedgers(XCanvas canvas, Size size, double staffHeight, Clefs staff, Fifths tone, NotePosition note) {
   int numLedgersToDraw = 0;
   switch (staff) {
-    case Clefs.g: {
+    case Clefs.G: {
       if(note.positionalValue() > topStaffLineNoteGClef.positionalValue() + 1) {
         numLedgersToDraw = ((note.positionalValue() - topStaffLineNoteGClef.positionalValue()) / 2).floor();
       } else if(note.positionalValue() < bottomStaffLineNoteGClef.positionalValue() - 1) {
@@ -18,7 +19,7 @@ paintLedgers(XCanvas canvas, Size size, double staffHeight, Clefs staff, MainTon
       }
       break;
     }
-    case Clefs.f: {
+    case Clefs.F: {
       if(note.positionalValue() > topStaffLineNoteFClef.positionalValue() + 1) {
         numLedgersToDraw = ((note.positionalValue() - topStaffLineNoteFClef.positionalValue()) / 2).floor();
       } else if(note.positionalValue() < bottomStaffLineNoteFClef.positionalValue() - 1) {
@@ -51,7 +52,7 @@ paintLedgers(XCanvas canvas, Size size, double staffHeight, Clefs staff, MainTon
   }
 }
 
-paintSingleNote(XCanvas canvas, Size size, double staffHeight, Clefs staff, MainTones tone, Note note, {bool? stemUp}) {
+paintSingleNote(XCanvas canvas, Size size, double staffHeight, Clefs staff, Fifths tone, NotePosition note, {bool? stemUp}) {
   double lineSpacing = getLineSpacing(staffHeight);
   int offset = calculateYOffsetForNote(staff, note);
   bool decideStemUp = stemUp != null ? stemUp : offset < 8;
@@ -72,7 +73,7 @@ paintSingleNote(XCanvas canvas, Size size, double staffHeight, Clefs staff, Main
 
   canvas.translate(GLYPH_ADVANCE_WIDTHS[singleNoteUpByLength[note.length!]!]!*lineSpacing, 0);
 
-  List<Note> alreadyAppliedAccidentals = staff == Clefs.g ? mainToneAccidentalsMapForGClef[tone]! : mainToneAccidentalsMapForFClef[tone]!;
+  List<NotePosition> alreadyAppliedAccidentals = staff == Clefs.G ? mainToneAccidentalsMapForGClef[tone]! : mainToneAccidentalsMapForFClef[tone]!;
   final alreadyAppliedAccidentalExists = alreadyAppliedAccidentals.any(
           (accidental) =>
       accidental.tone == note.tone
@@ -97,35 +98,35 @@ paintSingleNote(XCanvas canvas, Size size, double staffHeight, Clefs staff, Main
   }
 }
 
-const stdNotePositionGClef = Note(tone: BaseTones.C, octave: 4);
-const stdNotePositionFClef = Note(tone: BaseTones.E, octave: 2);
+const stdNotePositionGClef = NotePosition(tone: BaseTones.C, octave: 4);
+const stdNotePositionFClef = NotePosition(tone: BaseTones.E, octave: 2);
 
-const Map<Clefs, Note> stdNotePosition = {
-  Clefs.g: stdNotePositionGClef,
-  Clefs.f: stdNotePositionFClef,
+const Map<Clefs, NotePosition> stdNotePosition = {
+  Clefs.G: stdNotePositionGClef,
+  Clefs.F: stdNotePositionFClef,
 };
 
-const topStaffLineNoteGClef = Note(tone: BaseTones.F, octave: 3);
-const bottomStaffLineNoteGClef = Note(tone: BaseTones.E, octave: 2);
+const topStaffLineNoteGClef = NotePosition(tone: BaseTones.F, octave: 3);
+const bottomStaffLineNoteGClef = NotePosition(tone: BaseTones.E, octave: 2);
 
-const topStaffLineNoteFClef = Note(tone: BaseTones.A, octave: 1);
-const bottomStaffLineNoteFClef = Note(tone: BaseTones.G, octave: 0);
+const topStaffLineNoteFClef = NotePosition(tone: BaseTones.A, octave: 1);
+const bottomStaffLineNoteFClef = NotePosition(tone: BaseTones.G, octave: 0);
 
-const Map<Clefs, Note> topStaffLineNote = {
-  Clefs.g: topStaffLineNoteGClef,
-  Clefs.f: topStaffLineNoteFClef,
+const Map<Clefs, NotePosition> topStaffLineNote = {
+  Clefs.G: topStaffLineNoteGClef,
+  Clefs.F: topStaffLineNoteFClef,
 };
 
-const Map<Clefs, Note> bottomStaffLineNote = {
-  Clefs.g: bottomStaffLineNoteGClef,
-  Clefs.f: bottomStaffLineNoteFClef,
+const Map<Clefs, NotePosition> bottomStaffLineNote = {
+  Clefs.G: bottomStaffLineNoteGClef,
+  Clefs.F: bottomStaffLineNoteFClef,
 };
 
-int calculateYOffsetForNote(Clefs clef, Note note) {
+int calculateYOffsetForNote(Clefs clef, NotePosition note) {
   int diff = 0;
-  if(clef == Clefs.g) {
+  if(clef == Clefs.G) {
     diff = stdNotePositionGClef.positionalValue() - note.positionalValue();
-  } else if(clef == Clefs.f) {
+  } else if(clef == Clefs.F) {
     diff = stdNotePositionFClef.positionalValue() - note.positionalValue();
   }
   return diff;

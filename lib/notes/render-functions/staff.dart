@@ -4,10 +4,11 @@ import 'common.dart';
 import 'glyph.dart';
 import 'note.dart';
 import '../notes.dart';
-import '../../ExtendedCanvas.dart';
 import '../generated/glyph-advance-widths.dart';
 import '../generated/glyph-definitions.dart';
 import '../generated/engraving-defaults.dart';
+import '../../ExtendedCanvas.dart';
+import '../../musicXML/data.dart';
 
 /// Advances to the end of the lines
 paintStaffLines(XCanvas canvas, Size size, double lineSpacing, bool noAdvance) {
@@ -29,7 +30,7 @@ paintStaffLines(XCanvas canvas, Size size, double lineSpacing, bool noAdvance) {
 }
 
 enum BarLineTypes {
-  thin, double, boldDouble, repeatRight, repeatLeft
+  regular, lightLight, heavyHeavy, heavyLight, lightHeavy, heavy, dashed, repeatRight, repeatLeft
 }
 
 /// Does translate to after its width
@@ -47,17 +48,17 @@ paintBarLine(XCanvas canvas, Size size, double staffHeight, List<Clefs> clefs, d
     canvas.save();
   }
 
-  if(barline == BarLineTypes.thin) {
+  if(barline == BarLineTypes.regular) {
     paint.strokeWidth = lS*ENGRAVING_DEFAULTS.thinBarlineThickness;
     canvas.drawLine(startOffset, endOffset, paint);
     canvas.translate(lS*ENGRAVING_DEFAULTS.thinBarlineThickness, 0);
-  } else if(barline == BarLineTypes.double) {
+  } else if(barline == BarLineTypes.lightLight) {
     paint.strokeWidth = lS*ENGRAVING_DEFAULTS.thinBarlineThickness;
     canvas.drawLine(startOffset, endOffset, paint);
     canvas.translate(lS*ENGRAVING_DEFAULTS.barlineSeparation + lS*ENGRAVING_DEFAULTS.thinBarlineThickness, 0);
     canvas.drawLine(startOffset, endOffset, paint);
     canvas.translate(lS*ENGRAVING_DEFAULTS.thinBarlineThickness, 0);
-  } else if(barline == BarLineTypes.boldDouble) {
+  } else if(barline == BarLineTypes.heavyHeavy) {
     paint.strokeWidth = lS*ENGRAVING_DEFAULTS.thinBarlineThickness;
     canvas.drawLine(startOffset, endOffset, paint);
     canvas.translate(lS*ENGRAVING_DEFAULTS.thinThickBarlineSeparation + lS*ENGRAVING_DEFAULTS.thinBarlineThickness, 0);
@@ -89,13 +90,13 @@ paintBarLine(XCanvas canvas, Size size, double staffHeight, List<Clefs> clefs, d
   }
 }
 
-paintAccidentalsForTone(XCanvas canvas, Size size, double staffHeight, Clefs staff, MainTones tone, {bool noAdvance = false}) {
+paintAccidentalsForTone(XCanvas canvas, Size size, double staffHeight, Clefs staff, Fifths tone, {bool noAdvance = false}) {
   if(noAdvance) {
     canvas.save();
   }
 
   double lineSpacing = getLineSpacing(staffHeight);
-  final accidentals = staff == Clefs.f ? mainToneAccidentalsMapForFClef[tone]! : mainToneAccidentalsMapForGClef[tone]!;
+  final accidentals = staff == Clefs.F ? mainToneAccidentalsMapForFClef[tone]! : mainToneAccidentalsMapForGClef[tone]!;
   accidentals.forEach((note) {
     if(note.accidental != Accidentals.none) {
       paintGlyph(

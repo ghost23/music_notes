@@ -8,6 +8,7 @@ import 'render-functions/glyph.dart';
 import 'generated/glyph-definitions.dart';
 import 'generated/engraving-defaults.dart';
 import 'generated/glyph-advance-widths.dart';
+import '../musicXML/data.dart';
 import '../../ExtendedCanvas.dart';
 
 class MusicLineOptions {
@@ -24,7 +25,6 @@ class MusicLineOptions {
   }
 
   @override
-  // TODO: implement hashCode
   int get hashCode => staffHeight.hashCode ^ topMargin.hashCode;
 }
 
@@ -99,7 +99,7 @@ class BackgroundPainter extends CustomPainter {
     }
 
     paintBarLine(xCanvas, size, options.staffHeight, staffs, staffsSpacing,
-        BarLineTypes.thin, true);
+        BarLineTypes.regular, true);
 
     paintStaffLines(xCanvas, size, lineSpacing, true);
 
@@ -110,7 +110,7 @@ class BackgroundPainter extends CustomPainter {
     }
 
     paintBarLine(xCanvas, size, options.staffHeight, staffs, staffsSpacing,
-        BarLineTypes.boldDouble, false);
+        BarLineTypes.heavyHeavy, false);
 
     xCanvas.restore();
   }
@@ -171,10 +171,10 @@ class ForegroundPainter extends CustomPainter {
     xCanvas.translate(
         lineSpacing * ENGRAVING_DEFAULTS.barlineSeparation * 2, 0);
 
-    paintAccidentalsForTone(xCanvas, size, staffHeight, Clefs.g, MainTones.F_D,
+    paintAccidentalsForTone(xCanvas, size, staffHeight, Clefs.G, CircleOfFifths.F_D.v,
         noAdvance: true);
     xCanvas.translate(0, staffHeight + staffsSpacing);
-    paintAccidentalsForTone(xCanvas, size, staffHeight, Clefs.f, MainTones.F_D);
+    paintAccidentalsForTone(xCanvas, size, staffHeight, Clefs.F, CircleOfFifths.F_D.v);
     xCanvas.translate(0, -staffHeight - staffsSpacing);
 
     xCanvas.translate(
@@ -184,9 +184,9 @@ class ForegroundPainter extends CustomPainter {
       xCanvas,
       size,
       staffHeight,
-      Clefs.g,
-      MainTones.F_D,
-      Note(
+      Clefs.G,
+      CircleOfFifths.F_D.v,
+      NotePosition(
         tone: BaseTones.C,
         length: NoteLength.quarter,
         accidental: Accidentals.sharp,
