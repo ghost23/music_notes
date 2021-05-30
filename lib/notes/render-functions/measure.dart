@@ -184,11 +184,3 @@ calculateMeasureAttributesWidth(Attributes attributes, DrawingContext drawC) {
 paintDirection(Direction direction, DrawingContext drawC) {
 
 }
-
-paintForward(Forward forward, DrawingContext drawC) {
-
-}
-
-paintBackup(Backup backup, DrawingContext drawC) {
-
-}
