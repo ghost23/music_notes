@@ -2,14 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:xml/xml.dart';
 import 'musicXML/data.dart';
+import 'musicXML/parser.dart';
 import 'notes/music-line.dart';
 
-Future<XmlDocument> loadXML() async {
-  final rawFile = await rootBundle.loadString('assets/hanon-no1-stripped.musicxml');
-  return XmlDocument.parse(rawFile);
+Future<Score> loadXML() async {
+  final rawFile = await rootBundle.loadString('hanon-no1-stripped.musicxml');
+  return parseMusicXML(XmlDocument.parse(rawFile));
 }
 
-const double STAFF_HEIGHT = 72;
+const double STAFF_HEIGHT = 64;
 
 void main() {
   runApp(MyApp());
@@ -45,9 +46,30 @@ class _MyHomePageState extends State<MyHomePage> {
       body: Center(
         child: Container(
           alignment: Alignment.center,
-          width: 600,
+          width: 1600,
           height: 500,
-          child: MusicLine(options: MusicLineOptions(STAFF_HEIGHT, STAFF_HEIGHT), staffs: [Clefs.G, Clefs.F],)
+          child: FutureBuilder<Score>(
+              future: loadXML(),
+              builder: (context, snapshot) {
+                if(snapshot.hasData) {
+                  return MusicLine(
+                    options: MusicLineOptions(
+                      snapshot.data!,
+                      STAFF_HEIGHT,
+                      78,
+                    ),
+                  );
+                } else if(snapshot.hasError) {
+                  return Text('Oh, this failed!\n${snapshot.error}');
+                } else {
+                  return  SizedBox(
+                    child: CircularProgressIndicator(),
+                    width: 60,
+                    height: 60,
+                  );
+                }
+              }
+          )
         ),
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );

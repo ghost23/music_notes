@@ -30,6 +30,7 @@ dependencies:
   cupertino_icons: ^1.0.0
 
   xml: ^5.1.0
+  collection: ^1.15.0
 
 dev_dependencies:
   flutter_test:

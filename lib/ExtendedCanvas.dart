@@ -7,8 +7,9 @@ import 'dart:ui';
 /// translation: https://github.com/flutter/flutter/issues/38721
 class XCanvas implements Canvas {
   Point _currentTranslation;
+  List<Point> _translationStack;
   late Canvas _canvas;
-  XCanvas(Canvas canvas): _currentTranslation = Point(0,0) {
+  XCanvas(Canvas canvas): _currentTranslation = Point(0,0), _translationStack = [Point(0,0)] {
     _canvas = canvas;
   }
 
@@ -150,6 +151,9 @@ class XCanvas implements Canvas {
   @override
   void restore() {
     _canvas.restore();
+    if(_translationStack.length > 1) {
+      _currentTranslation = _translationStack.removeLast();
+    }
   }
 
   @override
@@ -160,6 +164,7 @@ class XCanvas implements Canvas {
   @override
   void save() {
     _canvas.save();
+    _translationStack.add(_currentTranslation);
   }
 
   @override

@@ -1,6 +1,5 @@
-
 import 'dart:ui';
-
+import 'package:music_notes_2/notes/generated/glyph-definitions.dart';
 import 'package:music_notes_2/notes/notes.dart';
 
 import '../notes/render-functions/staff.dart';
@@ -8,16 +7,22 @@ import '../notes/render-functions/staff.dart';
 class Score {
   Score(this.parts);
   final Iterable<Part> parts;
+  get isEmpty => parts.isEmpty || parts.first.isEmpty;
 }
 
 class Part {
   Part(this.measures);
   final Iterable<Measure> measures;
+  get isEmpty => measures.isEmpty;
 }
 
 class Measure {
   Measure(this.contents);
   final Iterable<MeasureContent> contents;
+  Attributes? get attributes {
+    final attributes = contents.whereType<Attributes>();
+    return attributes.isNotEmpty ? attributes.first : null;
+  }
 }
 
 class MeasureContent {}
@@ -54,7 +59,8 @@ class Wedge extends DirectionType {
 enum WedgeType { crescendo, diminuendo, stop, continued }
 
 class Words extends DirectionType {
-  Words(this.content, {this.fontFamily, this.fontSize, this.fontStyle, this.fontWeight});
+  Words(this.content,
+      {this.fontFamily, this.fontSize, this.fontStyle, this.fontWeight});
   final String content;
   final String? fontFamily;
   final double? fontSize;
@@ -72,12 +78,45 @@ enum Accidentals { none, natural, sharp, flat }
 enum NoteLength { whole, half, quarter, eighth, sixteenth, thirtysecond }
 
 class Attributes extends MeasureContent {
-  Attributes([this.divisions, this.key, this.staves, this.clefs = const [], this.time]);
+  Attributes([this.divisions, this.key, this.staves, this.clefs, this.time]);
   final int? divisions;
   final MusicalKey? key;
   final int? staves;
-  final Iterable<Clef> clefs;
+  final Iterable<Clef>? clefs;
   final Time? time;
+
+  bool get isValidForFirstMeasure =>
+      divisions != null &&
+      key != null &&
+      staves != null &&
+      clefs != null &&
+      clefs!.isNotEmpty &&
+      time != null;
+
+  Attributes copyWithParams(
+      {int? divisions,
+      MusicalKey? key,
+      int? staves,
+      Iterable<Clef>? clefs,
+      Time? time}) {
+    return Attributes(
+      divisions ?? this.divisions,
+      key ?? this.key,
+      staves ?? this.staves,
+      clefs ?? this.clefs,
+      time ?? this.time,
+    );
+  }
+
+  Attributes copyWithObject(Attributes attributes) {
+    return Attributes(
+      attributes.divisions ?? this.divisions,
+      attributes.key ?? this.key,
+      attributes.staves ?? this.staves,
+      attributes.clefs ?? this.clefs,
+      attributes.time ?? this.time,
+    );
+  }
 }
 
 class Time {
@@ -93,12 +132,33 @@ class Clef {
 }
 
 enum KeyMode {
-  none, major, minor, dorian, phrygian, lydian, mixolydian, aeolian, ionian, locrian
+  none,
+  major,
+  minor,
+  dorian,
+  phrygian,
+  lydian,
+  mixolydian,
+  aeolian,
+  ionian,
+  locrian
 }
 
 typedef Fifths = int;
 enum CircleOfFifths {
-  C_A, G_E, D_B, A_Fsharp, E_Csharp, B_Gsharp, Fsharp_Dsharp, Gflat_Eflat, Dflat_Bflat, Aflat_F, Eflat_C, Bflat_G, F_D
+  C_A,
+  G_E,
+  D_B,
+  A_Fsharp,
+  E_Csharp,
+  B_Gsharp,
+  Fsharp_Dsharp,
+  Gflat_Eflat,
+  Dflat_Bflat,
+  Aflat_F,
+  Eflat_C,
+  Bflat_G,
+  F_D
 }
 const Map<CircleOfFifths, Fifths> _fifthsToIntMap = {
   CircleOfFifths.C_A: 0,
@@ -129,55 +189,101 @@ class MusicalKey {
 }
 
 class Note extends MeasureContent {
-  Note(this.pitch, this.duration, this.voice, this.type, this.stem, this.staff, this.beams, this.notations, {this.dots=0, this.chord=false});
-  final Pitch pitch;
+  Note(this.duration, this.voice, this.staff, this.notations);
   final int duration;
   final int voice;
+  final int staff;
+  final Iterable<Notation> notations;
+}
+
+class RestNote extends Note {
+  RestNote(int duration, int voice, int staff, Iterable<Notation> notations) : super(duration, voice, staff, notations);
+}
+
+class PitchNote extends Note {
+  PitchNote(int duration, int voice, int staff, Iterable<Notation> notations,
+      this.pitch, this.type, this.stem, this.beams,
+      {this.dots = 0, this.chord = false})
+      : super(duration, voice, staff, notations);
+  final Pitch pitch;
   final NoteLength type;
   final StemValue stem;
-  final int staff;
   final Iterable<Beam> beams;
-  final Iterable<Notation> notations;
   final int dots;
   final bool chord;
+
+  NotePosition get notePosition => NotePosition(
+      tone: pitch.step,
+      length: type,
+      octave: pitch.octave,
+      accidental: pitch.accidental,
+  );
 }
 
 abstract class Notation {
-  Notation([PlacementValue? placementValue]): this.placement = placementValue ?? PlacementValue.below;
+  Notation([PlacementValue? placementValue])
+      : this.placement = placementValue ?? PlacementValue.below;
   final PlacementValue placement;
 }
 
 class Tied extends Notation {
-  Tied(this.number, this.type, [ PlacementValue? placement ]): super(placement);
+  Tied(this.number, this.type, [PlacementValue? placement]) : super(placement);
   final int number;
   final StCtStpValue type;
 }
 
 class Slur extends Notation {
-  Slur(this.number, this.type, [ PlacementValue? placement ]): super(placement);
+  Slur(this.number, this.type, [PlacementValue? placement]) : super(placement);
   final int number;
   final StCtStpValue type;
 }
 
 class Fingering extends Notation {
-  Fingering(this.value, [ PlacementValue? placement ]): super(placement);
+  Fingering(this.value, [PlacementValue? placement]) : super(placement);
   final String value;
 }
 
 class Accent extends Notation {
-  Accent([ PlacementValue? placement ]): super(placement);
+  Accent([PlacementValue? placement]) : super(placement);
 }
 
 class Staccato extends Notation {
-  Staccato([ PlacementValue? placement ]): super(placement);
+  Staccato([PlacementValue? placement]) : super(placement);
 }
 
 class Dynamics extends Notation {
-  Dynamics(this.type, [ PlacementValue? placement ]): super(placement);
+  Dynamics(this.type, [PlacementValue? placement]) : super(placement);
   final DynamicType type;
 }
 
-enum DynamicType { p, pp, ppp, pppp, ppppp, pppppp, f, ff, fff, ffff, fffff, ffffff, mp, mf, sf, sfp, sfpp, fp, rf, rfz, sfz, sffz, fz, n, pf, sfzp }
+enum DynamicType {
+  p,
+  pp,
+  ppp,
+  pppp,
+  ppppp,
+  pppppp,
+  f,
+  ff,
+  fff,
+  ffff,
+  fffff,
+  ffffff,
+  mp,
+  mf,
+  sf,
+  sfp,
+  sfpp,
+  fp,
+  rf,
+  rfz,
+  sfz,
+  sffz,
+  fz,
+  n,
+  pf,
+  sfzp
+}
 
 enum StCtStpValue { start, continued, stop }
 
@@ -198,6 +304,12 @@ class Pitch {
   final BaseTones step;
   final int octave;
   final int? alter;
+
+  Accidentals get accidental => alter == null || alter == 0
+      ? Accidentals.none
+      : (alter == -1
+          ? Accidentals.flat
+          : (alter == 1 ? Accidentals.sharp : Accidentals.none));
 }
 
 class Backup extends MeasureContent {
@@ -208,72 +320,4 @@ class Backup extends MeasureContent {
 class Forward extends MeasureContent {
   Forward(this.duration);
   final int duration;
-}
-
-/// A data representation of almost anything - but mostly notes - that can be put on staves,
-/// like notes, accidentals, legers, articulation glyphs, etc.
-/// It is more a positional info object. Maybe we should not actually call it Note?!
-class PositionalElement {
-  const PositionalElement(this.tone, this.octave, {this.length, this.accidental = Accidentals.none});
-
-  final BaseTones tone;
-  final Accidentals accidental;
-  /// 0 = C, 1 = c, 2 = c', etc.
-  final int octave;
-  final NoteLength? length;
-
-  PositionalElement.fromNumericValue(int value, this.length, bool preferSharp) :
-        octave = (value / 12).floor(),
-        tone = baseToneFromNumericValue(value, preferSharp),
-        accidental = accidentalFromNumericValue(value, preferSharp);
-
-  int diffToNote(PositionalElement other) {
-    return numericValue() - other.numericValue();
-  }
-
-  int numericValue() {
-    return octave * 12 + (numericValueOfBaseTone[tone]! + numericValueOfAccidental[accidental]!);
-  }
-
-  /// positional value is a value to determine where on a stave a note should be put.
-  /// So here we only care about the "white keys"-notes, which I called BaseNotes up above.
-  /// That's why an octave here has only 7 notes in it.
-  int positionalValue() {
-    return octave * 7 + BaseTones.values.indexOf(tone);
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return other is PositionalElement &&
-        numericValue() == other.numericValue();
-  }
-
-  bool operator >(Object other) {
-    return other is PositionalElement &&
-        numericValue() > other.numericValue();
-  }
-
-  bool operator >=(Object other) {
-    return other is PositionalElement &&
-        numericValue() >= other.numericValue();
-  }
-
-  bool operator <(Object other) {
-    return other is PositionalElement &&
-        numericValue() < other.numericValue();
-  }
-
-  bool operator <=(Object other) {
-    return other is PositionalElement &&
-        numericValue() <= other.numericValue();
-  }
-
-  @override
-  String toString() {
-    return 'PositionalElement(tone: $tone, accidental: $accidental, octave: $octave)';
-  }
-
-  @override
-  int get hashCode => tone.hashCode ^ accidental.hashCode ^ octave.hashCode;
-
 }

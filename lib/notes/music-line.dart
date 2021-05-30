@@ -1,8 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'notes.dart';
+import 'package:music_notes_2/notes/render-functions/measure.dart';
 import 'render-functions/common.dart';
-import 'render-functions/note.dart';
 import 'render-functions/staff.dart';
 import 'render-functions/glyph.dart';
 import 'generated/glyph-definitions.dart';
@@ -10,10 +9,12 @@ import 'generated/engraving-defaults.dart';
 import 'generated/glyph-advance-widths.dart';
 import '../musicXML/data.dart';
 import '../../ExtendedCanvas.dart';
+import 'package:collection/collection.dart';
 
 class MusicLineOptions {
-  MusicLineOptions(this.staffHeight, this.topMargin);
+  MusicLineOptions(this.score, this.staffHeight, this.topMargin);
 
+  final Score score;
   final double staffHeight;
   final double topMargin;
 
@@ -29,18 +30,23 @@ class MusicLineOptions {
 }
 
 class MusicLine extends StatefulWidget {
-  const MusicLine({Key? key, required this.options, this.staffs = const []})
+  const MusicLine({Key? key, required this.options})
       : super(key: key);
 
   final MusicLineOptions options;
-  final List<Clefs> staffs;
 
   @override
   _MusicLineState createState() => _MusicLineState();
 }
 
 class _MusicLineState extends State<MusicLine> {
-  double staffsSpacing = 100;
+  double staffsSpacing = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    staffsSpacing = 100;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,14 +61,14 @@ class _MusicLineState extends State<MusicLine> {
             child: CustomPaint(
               size: Size(newWidth, newHeight),
               painter: BackgroundPainter(
-                  widget.options, widget.staffs, staffsSpacing),
+                  widget.options, staffsSpacing),
             ),
           ),
           Positioned(
             child: CustomPaint(
               size: Size(newWidth, newHeight),
               painter: ForegroundPainter(
-                  widget.options, widget.staffs, staffsSpacing),
+                  widget.options, staffsSpacing),
             ),
           ),
         ],
@@ -71,12 +77,63 @@ class _MusicLineState extends State<MusicLine> {
   }
 }
 
+class EmptyScoreException implements Exception {
+  final dynamic message;
+
+  EmptyScoreException([this.message]);
+
+  String toString() {
+    Object? message = this.message;
+    if (message == null) return "EmptyScoreException";
+    return "EmptyScoreException: $message";
+  }
+}
+
+class DrawingContext extends MusicLineOptions {
+
+  DrawingContext(
+      Score score,
+      double staffHeight,
+      double topMargin,
+      this.canvas,
+      this.size,
+      this.staffsSpacing,
+      ) : _currentAttributes = score.parts.first.measures.first.attributes!,
+        super(score, staffHeight, topMargin);
+
+  final XCanvas canvas;
+  final Size size;
+  final double staffsSpacing;
+  get lineSpacing => getLineSpacing(staffHeight);
+  int _currentMeasure = 0;
+  int get currentMeasure => _currentMeasure;
+  set currentMeasure(int newMeasure) {
+    _currentMeasure = newMeasure;
+    final newMeasureAttributes = score.parts.first.measures.elementAt(newMeasure).attributes;
+    if(newMeasureAttributes != null) {
+      _currentAttributes = _currentAttributes.copyWithObject(newMeasureAttributes);
+    }
+  }
+  Attributes _currentAttributes;
+  Attributes get latestAttributes => _currentAttributes;
+
+  DrawingContext copyWith({Score? score, double? staffHeight, double? topMargin, XCanvas? canvas, Size? size, double? staffsSpacing}) {
+    return DrawingContext(
+      score ?? this.score,
+      staffHeight ?? this.staffHeight,
+      topMargin ?? this.topMargin,
+      canvas ?? this.canvas,
+      size ?? this.size,
+      staffsSpacing ?? this.staffsSpacing,
+    );
+  }
+}
+
 class BackgroundPainter extends CustomPainter {
-  BackgroundPainter(this.options, this.staffs, this.staffsSpacing)
+  BackgroundPainter(this.options, this.staffsSpacing)
       : this.lineSpacing = getLineSpacing(options.staffHeight);
 
   final MusicLineOptions options;
-  final List<Clefs> staffs;
   final double staffsSpacing;
   final double lineSpacing;
 
@@ -89,23 +146,25 @@ class BackgroundPainter extends CustomPainter {
     xCanvas.clipRect(Rect.fromLTWH(0, 0, size.width, size.height),
         doAntiAlias: false);
 
-    xCanvas.translate(0, options.staffHeight);
+    xCanvas.translate(0, options.topMargin);
 
-    if (staffs.length > 1) {
+    final drawC = DrawingContext(options.score, options.staffHeight, options.topMargin, xCanvas, size, staffsSpacing);
+
+    if ((drawC.latestAttributes.staves ?? 1) > 1) {
       paintGlyph(
-          xCanvas, size, options.staffHeight * 2 + staffsSpacing, Glyph.brace,
-          offset: Offset(0, (options.staffHeight * 2 + staffsSpacing) / 2));
+        drawC.copyWith(staffHeight: options.staffHeight * 2 + staffsSpacing),
+        Glyph.brace, yOffset: (options.staffHeight * 2 + staffsSpacing) / 2
+      );
       xCanvas.translate(lineSpacing * ENGRAVING_DEFAULTS.barlineSeparation, 0);
     }
 
-    paintBarLine(xCanvas, size, options.staffHeight, staffs, staffsSpacing,
-        BarLineTypes.regular, true);
+    paintBarLine(drawC, Barline(BarLineTypes.regular), true);
 
-    paintStaffLines(xCanvas, size, lineSpacing, true);
+    paintStaffLines(drawC, true);
 
-    if (staffs.length > 1) {
+    if ((drawC.latestAttributes.staves ?? 1) > 1) {
       xCanvas.translate(0, options.staffHeight + staffsSpacing);
-      paintStaffLines(xCanvas, size, lineSpacing, false);
+      paintStaffLines(drawC, false);
       xCanvas.translate(0, -options.staffHeight - staffsSpacing);
     }
 
@@ -114,28 +173,29 @@ class BackgroundPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(BackgroundPainter oldDelegate) {
-    return options != oldDelegate.options;
+    return options != oldDelegate.options || staffsSpacing != oldDelegate.staffsSpacing;
   }
 }
 
 class ForegroundPainter extends CustomPainter {
-  ForegroundPainter(this.options, this.staffs, this.staffsSpacing)
+  ForegroundPainter(this.options, this.staffsSpacing)
       : this.lineSpacing = getLineSpacing(options.staffHeight);
 
   final MusicLineOptions options;
-  final List<Clefs> staffs;
   final double staffsSpacing;
   final double lineSpacing;
 
   @override
   void paint(Canvas canvas, Size size) {
     final xCanvas = XCanvas(canvas);
-    final staffHeight = options.staffHeight;
+    xCanvas.translate(0, options.topMargin);
 
     final paint = Paint()..color = Colors.blue;
     paint.strokeWidth = lineSpacing * ENGRAVING_DEFAULTS.staffLineThickness;
 
-    if (staffs.length > 1) {
+    final drawC = DrawingContext(options.score, options.staffHeight, options.topMargin, xCanvas, size, staffsSpacing);
+
+    if ((drawC.latestAttributes.staves ?? 1) > 1) {
       // The brace in front of the whole music line takes up horizontal space. That
       // space is determined by the width of the brace, which in turn is determined by
       // heights of the staffs and the space between the staff.
@@ -147,53 +207,14 @@ class ForegroundPainter extends CustomPainter {
           0);
     }
 
-    paintGlyph(xCanvas, size, staffHeight, Glyph.gClef,
-        offset: Offset(0, lineSpacing * 5), noAdvance: true);
-    paintGlyph(xCanvas, size, staffHeight, Glyph.fClef,
-        offset: Offset(0, staffHeight + staffsSpacing + lineSpacing * 3));
-
-    xCanvas.translate(
-        lineSpacing * ENGRAVING_DEFAULTS.barlineSeparation * 2, 0);
-
-    paintGlyph(xCanvas, size, staffHeight, Glyph.timeSig4,
-        offset: Offset(0, lineSpacing * 3), noAdvance: true);
-    paintGlyph(xCanvas, size, staffHeight, Glyph.timeSig4,
-        offset: Offset(0, lineSpacing * 5), noAdvance: true);
-    paintGlyph(xCanvas, size, staffHeight, Glyph.timeSig4,
-        offset: Offset(0, staffHeight + staffsSpacing + lineSpacing * 3),
-        noAdvance: true);
-    paintGlyph(xCanvas, size, staffHeight, Glyph.timeSig4,
-        offset: Offset(0, staffHeight + staffsSpacing + lineSpacing * 5));
-
-    xCanvas.translate(
-        lineSpacing * ENGRAVING_DEFAULTS.barlineSeparation * 2, 0);
-
-    paintAccidentalsForTone(xCanvas, size, staffHeight, Clefs.G, CircleOfFifths.F_D.v,
-        noAdvance: true);
-    xCanvas.translate(0, staffHeight + staffsSpacing);
-    paintAccidentalsForTone(xCanvas, size, staffHeight, Clefs.F, CircleOfFifths.F_D.v);
-    xCanvas.translate(0, -staffHeight - staffsSpacing);
-
-    xCanvas.translate(
-        lineSpacing * ENGRAVING_DEFAULTS.barlineSeparation * 4, 0);
-
-    paintSingleNote(
-      xCanvas,
-      size,
-      staffHeight,
-      Clefs.G,
-      CircleOfFifths.F_D.v,
-      NotePosition(
-        tone: BaseTones.C,
-        length: NoteLength.quarter,
-        accidental: Accidentals.sharp,
-        octave: 2,
-      ),
-    );
+    options.score.parts.first.measures.toList().forEachIndexed((index, measure) {
+      drawC.currentMeasure = index;
+      paintMeasure(measure, drawC);
+    });
   }
 
   @override
   bool shouldRepaint(ForegroundPainter oldDelegate) {
-    return options != oldDelegate.options;
+    return options != oldDelegate.options || staffsSpacing != oldDelegate.staffsSpacing;
   }
 }

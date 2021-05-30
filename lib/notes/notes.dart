@@ -2,6 +2,16 @@ import 'dart:collection';
 import '../musicXML/data.dart';
 import 'generated/glyph-definitions.dart';
 
+const Map<Clefs, Glyph> clefToGlyphMap = {
+  Clefs.G: Glyph.gClef,
+  Clefs.F: Glyph.fClef,
+};
+
+const Map<Clefs, int> clefToPositionOffsetMap = {
+  Clefs.G: 1,
+  Clefs.F: -1,
+};
+
 const Map<NoteLength, Glyph> singleNoteUpByLength = {
   NoteLength.whole: Glyph.noteWhole,
   NoteLength.half: Glyph.noteHalfUp,
@@ -92,13 +102,13 @@ Accidentals accidentalFromNumericValue(int value, bool preferSharp) {
 /// like notes, accidentals, legers, articulation glyphs, etc.
 /// It is more a positional info object. Maybe we should not actually call it Note?!
 class NotePosition {
-  const NotePosition({this.tone, this.length, this.accidental = Accidentals.none, this.octave});
+  const NotePosition({required this.tone, required this.length, this.accidental = Accidentals.none, required this.octave});
 
-  final BaseTones? tone;
+  final BaseTones tone;
   final Accidentals accidental;
   /// 0 = C, 1 = c, 2 = c', etc.
-  final int? octave;
-  final NoteLength? length;
+  final int octave;
+  final NoteLength length;
 
   NotePosition.fromNumericValue(int value, this.length, bool preferSharp) :
       octave = (value / 12).floor(),
@@ -110,14 +120,14 @@ class NotePosition {
   }
 
   int numericValue() {
-    return octave! * 12 + (numericValueOfBaseTone[tone!]! + numericValueOfAccidental[accidental]!);
+    return octave * 12 + (numericValueOfBaseTone[tone]! + numericValueOfAccidental[accidental]!);
   }
 
   /// positional value is a value to determine where on a stave a note should be put.
   /// So here we only care about the "white keys"-notes, which I called BaseNotes up above.
   /// That's why an octave here has only 7 notes in it.
   int positionalValue() {
-    return octave! * 7 + BaseTones.values.indexOf(tone!);
+    return octave * 7 + BaseTones.values.indexOf(tone);
   }
 
   @override
@@ -159,139 +169,141 @@ class NotePosition {
 /// We use the following two maps to specify the general accidentals for
 /// all major and minor tone scales for the g clef and the f clef.
 const Map<Fifths, List<NotePosition>> mainToneAccidentalsMapForGClef = {
+  0: [],
   1: [
-    NotePosition(tone: BaseTones.F, octave: 3, accidental: Accidentals.sharp),
+    NotePosition(tone: BaseTones.F, octave: 3, accidental: Accidentals.sharp, length: NoteLength.quarter),
   ],
   2: [
-    NotePosition(tone: BaseTones.F, octave: 3, accidental: Accidentals.sharp),
-    NotePosition(tone: BaseTones.C, octave: 3, accidental: Accidentals.sharp),
+    NotePosition(tone: BaseTones.F, octave: 3, accidental: Accidentals.sharp, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.C, octave: 3, accidental: Accidentals.sharp, length: NoteLength.quarter),
   ],
   3: [
-    NotePosition(tone: BaseTones.F, octave: 3, accidental: Accidentals.sharp),
-    NotePosition(tone: BaseTones.C, octave: 3, accidental: Accidentals.sharp),
-    NotePosition(tone: BaseTones.G, octave: 3, accidental: Accidentals.sharp),
+    NotePosition(tone: BaseTones.F, octave: 3, accidental: Accidentals.sharp, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.C, octave: 3, accidental: Accidentals.sharp, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.G, octave: 3, accidental: Accidentals.sharp, length: NoteLength.quarter),
   ],
   4: [
-    NotePosition(tone: BaseTones.F, octave: 3, accidental: Accidentals.sharp),
-    NotePosition(tone: BaseTones.C, octave: 3, accidental: Accidentals.sharp),
-    NotePosition(tone: BaseTones.G, octave: 3, accidental: Accidentals.sharp),
-    NotePosition(tone: BaseTones.D, octave: 3, accidental: Accidentals.sharp),
+    NotePosition(tone: BaseTones.F, octave: 3, accidental: Accidentals.sharp, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.C, octave: 3, accidental: Accidentals.sharp, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.G, octave: 3, accidental: Accidentals.sharp, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.D, octave: 3, accidental: Accidentals.sharp, length: NoteLength.quarter),
   ],
   5: [
-    NotePosition(tone: BaseTones.F, octave: 3, accidental: Accidentals.sharp),
-    NotePosition(tone: BaseTones.C, octave: 3, accidental: Accidentals.sharp),
-    NotePosition(tone: BaseTones.G, octave: 3, accidental: Accidentals.sharp),
-    NotePosition(tone: BaseTones.D, octave: 3, accidental: Accidentals.sharp),
-    NotePosition(tone: BaseTones.A, octave: 2, accidental: Accidentals.sharp),
+    NotePosition(tone: BaseTones.F, octave: 3, accidental: Accidentals.sharp, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.C, octave: 3, accidental: Accidentals.sharp, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.G, octave: 3, accidental: Accidentals.sharp, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.D, octave: 3, accidental: Accidentals.sharp, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.A, octave: 2, accidental: Accidentals.sharp, length: NoteLength.quarter),
   ],
   6: [
-    NotePosition(tone: BaseTones.F, octave: 3, accidental: Accidentals.sharp),
-    NotePosition(tone: BaseTones.C, octave: 3, accidental: Accidentals.sharp),
-    NotePosition(tone: BaseTones.G, octave: 3, accidental: Accidentals.sharp),
-    NotePosition(tone: BaseTones.D, octave: 3, accidental: Accidentals.sharp),
-    NotePosition(tone: BaseTones.A, octave: 2, accidental: Accidentals.sharp),
-    NotePosition(tone: BaseTones.E, octave: 3, accidental: Accidentals.sharp),
+    NotePosition(tone: BaseTones.F, octave: 3, accidental: Accidentals.sharp, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.C, octave: 3, accidental: Accidentals.sharp, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.G, octave: 3, accidental: Accidentals.sharp, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.D, octave: 3, accidental: Accidentals.sharp, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.A, octave: 2, accidental: Accidentals.sharp, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.E, octave: 3, accidental: Accidentals.sharp, length: NoteLength.quarter),
   ],
   -1: [
-    NotePosition(tone: BaseTones.B, octave: 2, accidental: Accidentals.flat),
+    NotePosition(tone: BaseTones.B, octave: 2, accidental: Accidentals.flat, length: NoteLength.quarter),
   ],
   -2: [
-    NotePosition(tone: BaseTones.B, octave: 2, accidental: Accidentals.flat),
-    NotePosition(tone: BaseTones.E, octave: 3, accidental: Accidentals.flat),
+    NotePosition(tone: BaseTones.B, octave: 2, accidental: Accidentals.flat, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.E, octave: 3, accidental: Accidentals.flat, length: NoteLength.quarter),
   ],
   -3: [
-    NotePosition(tone: BaseTones.B, octave: 2, accidental: Accidentals.flat),
-    NotePosition(tone: BaseTones.E, octave: 3, accidental: Accidentals.flat),
-    NotePosition(tone: BaseTones.A, octave: 2, accidental: Accidentals.flat),
+    NotePosition(tone: BaseTones.B, octave: 2, accidental: Accidentals.flat, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.E, octave: 3, accidental: Accidentals.flat, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.A, octave: 2, accidental: Accidentals.flat, length: NoteLength.quarter),
   ],
   -4: [
-    NotePosition(tone: BaseTones.B, octave: 2, accidental: Accidentals.flat),
-    NotePosition(tone: BaseTones.E, octave: 3, accidental: Accidentals.flat),
-    NotePosition(tone: BaseTones.A, octave: 2, accidental: Accidentals.flat),
-    NotePosition(tone: BaseTones.D, octave: 3, accidental: Accidentals.flat),
+    NotePosition(tone: BaseTones.B, octave: 2, accidental: Accidentals.flat, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.E, octave: 3, accidental: Accidentals.flat, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.A, octave: 2, accidental: Accidentals.flat, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.D, octave: 3, accidental: Accidentals.flat, length: NoteLength.quarter),
   ],
   -5: [
-    NotePosition(tone: BaseTones.B, octave: 2, accidental: Accidentals.flat),
-    NotePosition(tone: BaseTones.E, octave: 3, accidental: Accidentals.flat),
-    NotePosition(tone: BaseTones.A, octave: 2, accidental: Accidentals.flat),
-    NotePosition(tone: BaseTones.D, octave: 3, accidental: Accidentals.flat),
-    NotePosition(tone: BaseTones.G, octave: 2, accidental: Accidentals.flat),
+    NotePosition(tone: BaseTones.B, octave: 2, accidental: Accidentals.flat, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.E, octave: 3, accidental: Accidentals.flat, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.A, octave: 2, accidental: Accidentals.flat, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.D, octave: 3, accidental: Accidentals.flat, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.G, octave: 2, accidental: Accidentals.flat, length: NoteLength.quarter),
   ],
   -6: [
-    NotePosition(tone: BaseTones.B, octave: 2, accidental: Accidentals.flat),
-    NotePosition(tone: BaseTones.E, octave: 3, accidental: Accidentals.flat),
-    NotePosition(tone: BaseTones.A, octave: 2, accidental: Accidentals.flat),
-    NotePosition(tone: BaseTones.D, octave: 3, accidental: Accidentals.flat),
-    NotePosition(tone: BaseTones.G, octave: 2, accidental: Accidentals.flat),
-    NotePosition(tone: BaseTones.C, octave: 3, accidental: Accidentals.flat),
+    NotePosition(tone: BaseTones.B, octave: 2, accidental: Accidentals.flat, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.E, octave: 3, accidental: Accidentals.flat, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.A, octave: 2, accidental: Accidentals.flat, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.D, octave: 3, accidental: Accidentals.flat, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.G, octave: 2, accidental: Accidentals.flat, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.C, octave: 3, accidental: Accidentals.flat, length: NoteLength.quarter),
   ],
 };
 
 const Map<Fifths, List<NotePosition>> mainToneAccidentalsMapForFClef = {
+  0: [],
   1: [
-    NotePosition(tone: BaseTones.F, octave: 1, accidental: Accidentals.sharp),
+    NotePosition(tone: BaseTones.F, octave: 1, accidental: Accidentals.sharp, length: NoteLength.quarter),
   ],
   2: [
-    NotePosition(tone: BaseTones.F, octave: 1, accidental: Accidentals.sharp),
-    NotePosition(tone: BaseTones.C, octave: 1, accidental: Accidentals.sharp),
+    NotePosition(tone: BaseTones.F, octave: 1, accidental: Accidentals.sharp, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.C, octave: 1, accidental: Accidentals.sharp, length: NoteLength.quarter),
   ],
   3: [
-    NotePosition(tone: BaseTones.F, octave: 1, accidental: Accidentals.sharp),
-    NotePosition(tone: BaseTones.C, octave: 1, accidental: Accidentals.sharp),
-    NotePosition(tone: BaseTones.G, octave: 1, accidental: Accidentals.sharp),
+    NotePosition(tone: BaseTones.F, octave: 1, accidental: Accidentals.sharp, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.C, octave: 1, accidental: Accidentals.sharp, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.G, octave: 1, accidental: Accidentals.sharp, length: NoteLength.quarter),
   ],
   4: [
-    NotePosition(tone: BaseTones.F, octave: 1, accidental: Accidentals.sharp),
-    NotePosition(tone: BaseTones.C, octave: 1, accidental: Accidentals.sharp),
-    NotePosition(tone: BaseTones.G, octave: 1, accidental: Accidentals.sharp),
-    NotePosition(tone: BaseTones.D, octave: 1, accidental: Accidentals.sharp),
+    NotePosition(tone: BaseTones.F, octave: 1, accidental: Accidentals.sharp, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.C, octave: 1, accidental: Accidentals.sharp, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.G, octave: 1, accidental: Accidentals.sharp, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.D, octave: 1, accidental: Accidentals.sharp, length: NoteLength.quarter),
   ],
   5: [
-    NotePosition(tone: BaseTones.F, octave: 1, accidental: Accidentals.sharp),
-    NotePosition(tone: BaseTones.C, octave: 1, accidental: Accidentals.sharp),
-    NotePosition(tone: BaseTones.G, octave: 1, accidental: Accidentals.sharp),
-    NotePosition(tone: BaseTones.D, octave: 1, accidental: Accidentals.sharp),
-    NotePosition(tone: BaseTones.A, octave: 0, accidental: Accidentals.sharp),
+    NotePosition(tone: BaseTones.F, octave: 1, accidental: Accidentals.sharp, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.C, octave: 1, accidental: Accidentals.sharp, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.G, octave: 1, accidental: Accidentals.sharp, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.D, octave: 1, accidental: Accidentals.sharp, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.A, octave: 0, accidental: Accidentals.sharp, length: NoteLength.quarter),
   ],
   6: [
-    NotePosition(tone: BaseTones.F, octave: 1, accidental: Accidentals.sharp),
-    NotePosition(tone: BaseTones.C, octave: 1, accidental: Accidentals.sharp),
-    NotePosition(tone: BaseTones.G, octave: 1, accidental: Accidentals.sharp),
-    NotePosition(tone: BaseTones.D, octave: 1, accidental: Accidentals.sharp),
-    NotePosition(tone: BaseTones.A, octave: 0, accidental: Accidentals.sharp),
-    NotePosition(tone: BaseTones.E, octave: 1, accidental: Accidentals.sharp),
+    NotePosition(tone: BaseTones.F, octave: 1, accidental: Accidentals.sharp, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.C, octave: 1, accidental: Accidentals.sharp, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.G, octave: 1, accidental: Accidentals.sharp, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.D, octave: 1, accidental: Accidentals.sharp, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.A, octave: 0, accidental: Accidentals.sharp, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.E, octave: 1, accidental: Accidentals.sharp, length: NoteLength.quarter),
   ],
   -1: [
-    NotePosition(tone: BaseTones.B, octave: 0, accidental: Accidentals.flat),
+    NotePosition(tone: BaseTones.B, octave: 0, accidental: Accidentals.flat, length: NoteLength.quarter),
   ],
   -2: [
-    NotePosition(tone: BaseTones.B, octave: 0, accidental: Accidentals.flat),
-    NotePosition(tone: BaseTones.E, octave: 1, accidental: Accidentals.flat),
+    NotePosition(tone: BaseTones.B, octave: 0, accidental: Accidentals.flat, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.E, octave: 1, accidental: Accidentals.flat, length: NoteLength.quarter),
   ],
   -3: [
-    NotePosition(tone: BaseTones.B, octave: 0, accidental: Accidentals.flat),
-    NotePosition(tone: BaseTones.E, octave: 1, accidental: Accidentals.flat),
-    NotePosition(tone: BaseTones.A, octave: 0, accidental: Accidentals.flat),
+    NotePosition(tone: BaseTones.B, octave: 0, accidental: Accidentals.flat, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.E, octave: 1, accidental: Accidentals.flat, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.A, octave: 0, accidental: Accidentals.flat, length: NoteLength.quarter),
   ],
   -4: [
-    NotePosition(tone: BaseTones.B, octave: 0, accidental: Accidentals.flat),
-    NotePosition(tone: BaseTones.E, octave: 1, accidental: Accidentals.flat),
-    NotePosition(tone: BaseTones.A, octave: 0, accidental: Accidentals.flat),
-    NotePosition(tone: BaseTones.D, octave: 1, accidental: Accidentals.flat),
+    NotePosition(tone: BaseTones.B, octave: 0, accidental: Accidentals.flat, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.E, octave: 1, accidental: Accidentals.flat, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.A, octave: 0, accidental: Accidentals.flat, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.D, octave: 1, accidental: Accidentals.flat, length: NoteLength.quarter),
   ],
   -5: [
-    NotePosition(tone: BaseTones.B, octave: 0, accidental: Accidentals.flat),
-    NotePosition(tone: BaseTones.E, octave: 1, accidental: Accidentals.flat),
-    NotePosition(tone: BaseTones.A, octave: 0, accidental: Accidentals.flat),
-    NotePosition(tone: BaseTones.D, octave: 1, accidental: Accidentals.flat),
-    NotePosition(tone: BaseTones.G, octave: 0, accidental: Accidentals.flat),
+    NotePosition(tone: BaseTones.B, octave: 0, accidental: Accidentals.flat, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.E, octave: 1, accidental: Accidentals.flat, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.A, octave: 0, accidental: Accidentals.flat, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.D, octave: 1, accidental: Accidentals.flat, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.G, octave: 0, accidental: Accidentals.flat, length: NoteLength.quarter),
   ],
   -6: [
-    NotePosition(tone: BaseTones.B, octave: 0, accidental: Accidentals.flat),
-    NotePosition(tone: BaseTones.E, octave: 1, accidental: Accidentals.flat),
-    NotePosition(tone: BaseTones.A, octave: 0, accidental: Accidentals.flat),
-    NotePosition(tone: BaseTones.D, octave: 1, accidental: Accidentals.flat),
-    NotePosition(tone: BaseTones.G, octave: 0, accidental: Accidentals.flat),
-    NotePosition(tone: BaseTones.C, octave: 1, accidental: Accidentals.flat),
+    NotePosition(tone: BaseTones.B, octave: 0, accidental: Accidentals.flat, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.E, octave: 1, accidental: Accidentals.flat, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.A, octave: 0, accidental: Accidentals.flat, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.D, octave: 1, accidental: Accidentals.flat, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.G, octave: 0, accidental: Accidentals.flat, length: NoteLength.quarter),
+    NotePosition(tone: BaseTones.C, octave: 1, accidental: Accidentals.flat, length: NoteLength.quarter),
   ],
 };
