@@ -173,11 +173,12 @@ ${Object.keys(glyphNames).filter(g=>bravuraMetaData.glyphAdvanceWidths.hasOwnPro
 
     function convertBBoxDataToDart(glyphKey, index, list) {
         const bbox = bravuraMetaData.glyphBBoxes[glyphKey];
-        return `   Glyph.${glyphKey}: GlyphBBox(Offset(${bbox.bBoxNE[0]}, ${bbox.bBoxNE[1]}), Offset(${bbox.bBoxSW[0]}, ${bbox.bBoxSW[1]}))${index < list.length-1 ? ',\n':''}`;
+        return `   Glyph.${glyphKey}: GlyphBBox(Offset(${bbox.bBoxNE[0]}, ${-bbox.bBoxNE[1]}), Offset(${bbox.bBoxSW[0]}, ${-bbox.bBoxSW[1]}))${index < list.length-1 ? ',\n':''}`;
     }
 
     const glyphBBoxesDart =
-`import 'glyph-definitions.dart';
+`import 'dart:ui';
+import 'glyph-definitions.dart';
 
 class GlyphBBox {
     
@@ -197,11 +198,12 @@ ${Object.keys(glyphNames).filter(g=>bravuraMetaData.glyphBBoxes.hasOwnProperty(g
     function convertAnchorsToDart(glyphKey, index, list) {
         const glyphAnchor = bravuraMetaData.glyphsWithAnchors[glyphKey];
 
-        return `   Glyph.${glyphKey}: GlyphAnchor(${Object.keys(glyphAnchor).map(elmt=>`${elmt}: Offset(${glyphAnchor[elmt][0]}, ${glyphAnchor[elmt][1]})`).join(', ')})${index < list.length-1 ? ',\n':''}`;
+        return `   Glyph.${glyphKey}: GlyphAnchor(${Object.keys(glyphAnchor).map(elmt=>`${elmt}: Offset(${glyphAnchor[elmt][0]}, ${-glyphAnchor[elmt][1]})`).join(', ')})${index < list.length-1 ? ',\n':''}`;
     }
 
     const glyphsWithAnchorsDart =
-`import 'glyph-definitions.dart';
+`import 'dart:ui';
+import 'glyph-definitions.dart';
 
 class GlyphAnchor {
 
@@ -252,6 +254,33 @@ class GlyphAnchor {
     final Offset repeatOffset;
     final Offset noteheadOrigin;
     final Offset opticalCenter;
+
+    GlyphAnchor translate(Offset offset) {
+       return GlyphAnchor(
+           splitStemUpSE: this.splitStemUpSE + offset,
+           splitStemUpSW: this.splitStemUpSW + offset,
+           splitStemDownNE: this.splitStemDownNE + offset,
+           splitStemDownNW: this.splitStemDownNW + offset,
+           stemUpSE: this.stemUpSE + offset,
+           stemDownNW: this.stemDownNW + offset,
+           stemUpNW: this.stemUpNW + offset,
+           stemDownSW: this.stemDownSW + offset,
+           nominalWidth: this.nominalWidth + offset,
+           numeralTop: this.numeralTop + offset,
+           numeralBottom: this.numeralBottom + offset,
+           cutOutNE: this.cutOutNE + offset,
+           cutOutSE: this.cutOutSE + offset,
+           cutOutSW: this.cutOutSW + offset,
+           cutOutNW: this.cutOutNW + offset,
+           graceNoteSlashSW: this.graceNoteSlashSW + offset,
+           graceNoteSlashNE: this.graceNoteSlashNE + offset,
+           graceNoteSlashNW: this.graceNoteSlashNW + offset,
+           graceNoteSlashSE: this.graceNoteSlashSE + offset,
+           repeatOffset: this.repeatOffset + offset,
+           noteheadOrigin: this.noteheadOrigin + offset,
+           opticalCenter: this.opticalCenter + offset,
+       );
+    }
 }
 
 const GLYPH_ANCHORS = <Glyph, GlyphAnchor>{

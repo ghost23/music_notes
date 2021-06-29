@@ -10,7 +10,7 @@ Future<Score> loadXML() async {
   return parseMusicXML(XmlDocument.parse(rawFile));
 }
 
-const double STAFF_HEIGHT = 64;
+const double STAFF_HEIGHT = 36;
 
 void main() {
   runApp(MyApp());
@@ -42,12 +42,14 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
 
+    final size = MediaQuery.of(context).size;
+
     return Scaffold(
       body: Center(
         child: Container(
           alignment: Alignment.center,
-          width: 1600,
-          height: 500,
+          width: size.width - 40,
+          height: size.height - 40,
           child: FutureBuilder<Score>(
               future: loadXML(),
               builder: (context, snapshot) {
@@ -56,7 +58,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     options: MusicLineOptions(
                       snapshot.data!,
                       STAFF_HEIGHT,
-                      78,
+                      1,
                     ),
                   );
                 } else if(snapshot.hasError) {

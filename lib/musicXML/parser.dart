@@ -390,7 +390,7 @@ Beam? parseBeamXML(XmlElement beamXML) {
   final String? valueString = beamXML.innerText;
   final BeamValue? value = valueString != null
       ? BeamValue.values
-          .firstWhere((e) => e.toString() == 'BeamValue.$valueString')
+          .firstWhere((e) => e.toString() == 'BeamValue.continued' ? valueString == 'continue' : e.toString() == 'BeamValue.$valueString')
       : null;
 
   final int number = int.parse(beamXML.getAttribute('number') ?? '1');

@@ -81,6 +81,7 @@
             <note>
                 <pitch>
                     <step>F</step>
+                    <alter>1</alter>
                     <octave>3</octave>
                 </pitch>
                 <duration>1</duration>

@@ -12,7 +12,7 @@ import '../../ExtendedCanvas.dart';
 import 'package:collection/collection.dart';
 
 class MusicLineOptions {
-  MusicLineOptions(this.score, this.staffHeight, this.topMargin);
+  MusicLineOptions(this.score, this.staffHeight, double topMarginFactor): this.topMargin = staffHeight * topMarginFactor;
 
   final Score score;
   final double staffHeight;
@@ -45,7 +45,7 @@ class _MusicLineState extends State<MusicLine> {
   @override
   void initState() {
     super.initState();
-    staffsSpacing = 100;
+    staffsSpacing = widget.options.staffHeight * 2;
   }
 
   @override

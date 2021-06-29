@@ -1,3 +1,6 @@
+import 'dart:math';
+import 'dart:ui';
+
 import 'package:music_notes_2/notes/generated/engraving-defaults.dart';
 import 'package:music_notes_2/notes/render-functions/glyph.dart';
 import 'package:music_notes_2/notes/render-functions/note.dart';
@@ -14,6 +17,8 @@ paintMeasure(Measure measure, DrawingContext drawC) {
   final grid = createGridForMeasure(measure, drawC);
 
   grid.forEachIndexed((columnIndex, column) {
+    final alignmentOffset = calculateColumnAlignment(drawC, column);
+    drawC.canvas.translate(alignmentOffset.left.abs(), 0);
     column.forEachIndexed((index, measureContent) {
       bool isLastElement = index == column.length-1;
       switch(measureContent.runtimeType) {
@@ -30,7 +35,7 @@ paintMeasure(Measure measure, DrawingContext drawC) {
           paintDirection(measureContent as Direction, drawC); break;
         }
         case PitchNote: {
-          paintPitchNote(drawC, measureContent as PitchNote, noAdvance: !isLastElement); break;
+          paintPitchNote(drawC, measureContent as PitchNote, noAdvance: true); break;
         }
         case RestNote: {
           paintRestNote(drawC, measureContent as RestNote, noAdvance: !isLastElement); break;
@@ -40,6 +45,8 @@ paintMeasure(Measure measure, DrawingContext drawC) {
         }
       }
     });
+
+    drawC.canvas.translate(alignmentOffset.right, 0);
 
     // TODO: Spacing between columns, currently static, probably needs to be dynamic
     // to justify measures for the whole line
@@ -52,6 +59,16 @@ paintMeasure(Measure measure, DrawingContext drawC) {
     paintBarLine(drawC, Barline(BarLineTypes.regular), false);
     drawC.canvas.translate(drawC.lineSpacing * 1, 0);
   }
+}
+
+Rect calculateColumnAlignment(DrawingContext drawC, List<MeasureContent> column) {
+
+  final measurements = column.whereType<PitchNote>().map((element) => calculateNoteWidth(drawC, element));
+
+  final leftOffset = measurements.fold<double>(0, (value, element) => min(value, element.boundingBox.left));
+  final rightOffset = measurements.fold<double>(0, (value, element) => max(value, element.boundingBox.right));
+
+  return Rect.fromLTRB(leftOffset, 0, rightOffset, 0);
 }
 
 List<List<MeasureContent>> createGridForMeasure(Measure measure, DrawingContext drawC) {

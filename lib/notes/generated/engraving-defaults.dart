@@ -19,7 +19,7 @@ class EngravingDefaults {
   final double dashedBarlineDashLength = 0.5;
   final double dashedBarlineGapLength = 0.25;
   final double barlineSeparation = 0.4;
-  final double thinThickBarlineSeparation = 0.4;
+  final double thinThickBarlineSeparation = 0;
   final double repeatBarlineDotSeparation = 0.16;
   final double bracketThickness = 0.5;
   final double subBracketThickness = 0.16;
