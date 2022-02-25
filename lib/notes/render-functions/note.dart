@@ -108,9 +108,7 @@ paintPitchNote(DrawingContext drawC, PitchNote note, {bool noAdvance = false}) {
   paintGlyph(
     drawC,
     noteGlyph,
-    yOffset: (lineSpacing / 2) * offset -
-        (!drawNoteWithStem ? lineSpacing * 0.1 : 0),
-    // <--  "- (lineSpacing*0.1)" is a visual correction, because the noteheads seemed off
+    yOffset: (lineSpacing / 2) * offset,
     noAdvance: true,
   );
 
@@ -143,11 +141,11 @@ paintPitchNote(DrawingContext drawC, PitchNote note, {bool noAdvance = false}) {
 
     if (openBeams.isEmpty) {
       final int numBeams = currentBeamPointMapForThisId.length;
-      for(final beams in currentBeamPointMapForThisId.entries) {
-        final BeamPoint start = beams.value.first;
-        final BeamPoint end = beams.value.last;
+      for(final beamPoints in currentBeamPointMapForThisId.entries) {
+        final BeamPoint start = beamPoints.value.first;
+        final BeamPoint end = beamPoints.value.last;
 
-        final double steamLength = lineSpacing*2 + beams.key * (ENGRAVING_DEFAULTS.beamThickness*lineSpacing + ENGRAVING_DEFAULTS.beamSpacing*lineSpacing);
+        final double steamLength = lineSpacing*2 + beamPoints.key * (ENGRAVING_DEFAULTS.beamThickness*lineSpacing + ENGRAVING_DEFAULTS.beamSpacing*lineSpacing);
 
         Offset startOffset, endOffset;
         if (start.drawAbove) {
@@ -184,9 +182,8 @@ paintPitchNote(DrawingContext drawC, PitchNote note, {bool noAdvance = false}) {
 
         paintBeam(drawC, startOffset, endOffset);
 
-        for(final beamPoint in beams.value) {
+        for(final beamPoint in beamPoints.value) {
           print('drawing stem for beampoint: ${beamPoint.beam.value}');
-          final double steamLength = lineSpacing*2 + numBeams * (ENGRAVING_DEFAULTS.beamThickness*lineSpacing + ENGRAVING_DEFAULTS.beamSpacing*lineSpacing);
           Offset stemOffsetStart, stemOffsetEnd;
           if(beamPoint.drawAbove) {
             stemOffsetStart = drawC.canvas.globalToLocal(Offset(
@@ -196,12 +193,15 @@ paintPitchNote(DrawingContext drawC, PitchNote note, {bool noAdvance = false}) {
                   beamPoint.noteAnchor.stemUpSE.dy * lineSpacing,
             ));
 
+            final startOffsetGlobal = drawC.canvas.localToGlobal(startOffset);
+            final endOffsetGlobal = drawC.canvas.localToGlobal(endOffset);
+
+            double stemOffsetYEnd = ((beamPoint.notePosition.dx + beamPoint.noteAnchor.stemUpSE.dx * lineSpacing) - startOffsetGlobal.dx) *
+                ((endOffsetGlobal.dy - startOffsetGlobal.dy) / (endOffsetGlobal.dx - startOffsetGlobal.dx)) + startOffsetGlobal.dy;
+
             stemOffsetEnd = drawC.canvas.globalToLocal(Offset(
               beamPoint.notePosition.dx + beamPoint.noteAnchor.stemUpSE.dx * lineSpacing,
-              beamPoint.notePosition.dy +
-                  (drawC.staffHeight/2) -
-                  steamLength - (ENGRAVING_DEFAULTS.beamThickness*lineSpacing) +
-                  beamPoint.noteAnchor.stemUpSE.dy * lineSpacing,
+              stemOffsetYEnd,
             ));
           } else {
             stemOffsetStart = drawC.canvas.globalToLocal(Offset(
@@ -211,12 +211,17 @@ paintPitchNote(DrawingContext drawC, PitchNote note, {bool noAdvance = false}) {
                   beamPoint.noteAnchor.stemDownNW.dy * lineSpacing,
             ));
 
+            final startOffsetGlobal = drawC.canvas.localToGlobal(startOffset);
+            final endOffsetGlobal = drawC.canvas.localToGlobal(endOffset);
+
+            double stemOffsetYEnd = ((beamPoint.notePosition.dx + beamPoint.noteAnchor.stemDownNW.dx * lineSpacing) - startOffsetGlobal.dx) *
+                ((endOffsetGlobal.dy - startOffsetGlobal.dy) / (endOffsetGlobal.dx - startOffsetGlobal.dx)) +
+                startOffsetGlobal.dy +
+                ENGRAVING_DEFAULTS.beamThickness*lineSpacing;
+
             stemOffsetEnd = drawC.canvas.globalToLocal(Offset(
               beamPoint.notePosition.dx + beamPoint.noteAnchor.stemDownNW.dx * lineSpacing,
-              beamPoint.notePosition.dy +
-                  (drawC.staffHeight/2) +
-                  steamLength + (ENGRAVING_DEFAULTS.beamThickness*lineSpacing) +
-                  beamPoint.noteAnchor.stemDownNW.dy * lineSpacing,
+              stemOffsetYEnd,
             ));
           }
 
