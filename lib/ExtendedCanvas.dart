@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'dart:typed_data';
 import 'dart:ui';
 
@@ -6,21 +5,29 @@ import 'dart:ui';
 /// as the original one gives us no access to the current
 /// translation: https://github.com/flutter/flutter/issues/38721
 class XCanvas implements Canvas {
-  Point _currentTranslation;
-  List<Point> _translationStack;
+  Offset _currentTranslation;
+  List<Offset> _translationStack;
   late Canvas _canvas;
-  XCanvas(Canvas canvas): _currentTranslation = Point(0,0), _translationStack = [Point(0,0)] {
+  XCanvas(Canvas canvas): _currentTranslation = Offset(0,0), _translationStack = [Offset(0,0)] {
     _canvas = canvas;
   }
 
   @override
   void translate(double dx, double dy) {
     _canvas.translate(dx, dy);
-    _currentTranslation += Point(dx, dy);
+    _currentTranslation += Offset(dx, dy);
   }
 
-  Point getTranslation() {
+  Offset getTranslation() {
     return _currentTranslation;
+  }
+
+  Offset localToGlobal(Offset local) {
+    return _currentTranslation + local;
+  }
+
+  Offset globalToLocal(Offset global) {
+    return global - _currentTranslation;
   }
 
   @override

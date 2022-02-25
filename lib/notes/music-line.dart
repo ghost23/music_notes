@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:music_notes_2/notes/render-functions/measure.dart';
+import 'generated/glyph-anchors.dart';
 import 'render-functions/common.dart';
 import 'render-functions/staff.dart';
 import 'render-functions/glyph.dart';
@@ -89,6 +90,39 @@ class EmptyScoreException implements Exception {
   }
 }
 
+class BeamPoint {
+  BeamPoint(this.beam, this.notePosition, this.noteAnchor, this.drawAbove);
+
+  final bool drawAbove;
+  final Beam beam;
+  final Offset notePosition;
+  final GlyphAnchor noteAnchor;
+}
+
+List<int> getOpenBeams(Map<int, List<BeamPoint>> beamPoints) {
+  final List<int> beginList = [];
+  final List<int> endOrHookList = [];
+
+  for(final beamPointsForNumber in beamPoints.values) {
+    for(final elmt in beamPointsForNumber) {
+      switch (elmt.beam.value) {
+        case BeamValue.backward:
+        case BeamValue.forward:
+        case BeamValue.end:
+          endOrHookList.add(elmt.beam.number);
+          break;
+        case BeamValue.begin:
+          beginList.add(elmt.beam.number);
+          break;
+        default:
+          break;
+      }
+    }
+  }
+
+  return beginList.whereNot((element) => endOrHookList.contains(element)).toList(growable: false);
+}
+
 class DrawingContext extends MusicLineOptions {
 
   DrawingContext(
@@ -116,6 +150,8 @@ class DrawingContext extends MusicLineOptions {
   }
   Attributes _currentAttributes;
   Attributes get latestAttributes => _currentAttributes;
+
+  Map<int, Map<int, List<BeamPoint>>> currentBeamPointsPerID = {};
 
   DrawingContext copyWith({Score? score, double? staffHeight, double? topMargin, XCanvas? canvas, Size? size, double? staffsSpacing}) {
     return DrawingContext(

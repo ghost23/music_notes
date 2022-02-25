@@ -15,9 +15,11 @@ paintMeasure(Measure measure, DrawingContext drawC) {
   bool paintedBarline = false;
 
   final grid = createGridForMeasure(measure, drawC);
+  print('paint measure');
 
   grid.forEachIndexed((columnIndex, column) {
-    final alignmentOffset = calculateColumnAlignment(drawC, column);
+    final measurements = column.whereType<PitchNote>().map((element) => calculateNoteWidth(drawC, element));
+    final alignmentOffset = calculateColumnAlignment(drawC, measurements);
     drawC.canvas.translate(alignmentOffset.left.abs(), 0);
     column.forEachIndexed((index, measureContent) {
       bool isLastElement = index == column.length-1;
@@ -61,9 +63,7 @@ paintMeasure(Measure measure, DrawingContext drawC) {
   }
 }
 
-Rect calculateColumnAlignment(DrawingContext drawC, List<MeasureContent> column) {
-
-  final measurements = column.whereType<PitchNote>().map((element) => calculateNoteWidth(drawC, element));
+Rect calculateColumnAlignment(DrawingContext drawC, Iterable<PitchNoteRenderMeasurements> measurements) {
 
   final leftOffset = measurements.fold<double>(0, (value, element) => min(value, element.boundingBox.left));
   final rightOffset = measurements.fold<double>(0, (value, element) => max(value, element.boundingBox.right));
@@ -72,7 +72,7 @@ Rect calculateColumnAlignment(DrawingContext drawC, List<MeasureContent> column)
 }
 
 List<List<MeasureContent>> createGridForMeasure(Measure measure, DrawingContext drawC) {
-
+  print('prepare grid for measure');
   final columnsOnFourFour = drawC.latestAttributes.divisions! * 4;
   final currentTimeFactor = drawC.latestAttributes.time!.beats / drawC.latestAttributes.time!.beatType;
   final columnsOnCurrentTime = columnsOnFourFour * currentTimeFactor;
@@ -104,6 +104,7 @@ List<List<MeasureContent>> createGridForMeasure(Measure measure, DrawingContext 
         if(element is Note && index < measure.contents.length - 1) {
           final nextElement = measure.contents.elementAt(index + 1);
           if(element is PitchNote && nextElement is PitchNote) {
+            element.beams.toList();
             if (!element.chord) {
               if (nextElement.chord) {
                 // next element is chord note, so we save the current

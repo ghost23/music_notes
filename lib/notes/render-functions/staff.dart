@@ -17,7 +17,7 @@ paintStaffLines(DrawingContext drawC, bool noAdvance) {
   final paint = Paint()..color = Colors.black;
   paint.strokeWidth = lineSpacing * ENGRAVING_DEFAULTS.staffLineThickness;
 
-  final lineWidth = drawC.size.width - drawC.canvas.getTranslation().x;
+  final lineWidth = drawC.size.width - drawC.canvas.getTranslation().dx;
 
   drawC.canvas.drawLine(Offset(0, 0), Offset(lineWidth, 0), paint);
   drawC.canvas.drawLine(Offset(0, lineSpacing * 1), Offset(lineWidth, lineSpacing * 1), paint);

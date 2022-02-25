@@ -11,12 +11,12 @@ XmlDocument loadMusicXMLFile(String filePath) {
 
 Score parseMusicXML(XmlDocument document) {
   final parts = document.findAllElements('part');
-  return Score(parts.map(parsePartXML));
+  return Score(parts.map(parsePartXML).toList());
 }
 
 Part parsePartXML(XmlElement partXML) {
   final measures = partXML.findAllElements('measure');
-  final parsedMeasures = measures.map(parseMeasureXML);
+  final parsedMeasures = measures.map(parseMeasureXML).toList();
   if (parsedMeasures.isNotEmpty &&
       (parsedMeasures.first.attributes == null ||
           !parsedMeasures.first.attributes!.isValidForFirstMeasure)) {
@@ -28,7 +28,7 @@ Part parsePartXML(XmlElement partXML) {
 
 Measure parseMeasureXML(XmlElement measureXML) {
   final childElements = measureXML.children.whereType<XmlElement>();
-  final Iterable<MeasureContent> contents = childElements.map((child) {
+  final List<MeasureContent> contents = childElements.map((child) {
     switch (child.name.qualified) {
       case 'attributes':
         {
@@ -59,7 +59,7 @@ Measure parseMeasureXML(XmlElement measureXML) {
           return null;
         }
     }
-  }).whereType<MeasureContent>();
+  }).whereType<MeasureContent>().toList();
 
   return Measure(contents);
 }
@@ -93,7 +93,7 @@ Attributes? parseAttributesXML(XmlElement attributesXML) {
       stavesElmt != null ? int.parse(stavesElmt.innerText) : null;
 
   final clefElmts = attributesXML.findAllElements('clef');
-  Iterable<Clef>? clefs;
+  List<Clef>? clefs;
   if (clefElmts.isNotEmpty) {
     clefs = clefElmts.map((clefElmt) {
       final signElmt = clefElmt.getElement('sign');
@@ -108,7 +108,7 @@ Attributes? parseAttributesXML(XmlElement attributesXML) {
         return Clef(number, sign);
       } else
         return null;
-    }).whereType<Clef>();
+    }).whereType<Clef>().toList();
   }
 
   if ((staves ?? 0) != (clefs != null ? clefs.length : 0)) {
@@ -340,10 +340,10 @@ Note? parseNoteXML(XmlElement noteXML) {
   final int? staff = staffElmt != null ? int.parse(staffElmt.innerText) : null;
 
   final beamElmts = noteXML.findAllElements('beam');
-  final beams = beamElmts.map(parseBeamXML).whereType<Beam>();
+  final beams = beamElmts.map(parseBeamXML).whereType<Beam>().toList();
 
   final notationElmts = noteXML.findAllElements('notation');
-  final notations = notationElmts.map(parseNotationXML).expand((e) => e);
+  final notations = notationElmts.map(parseNotationXML).expand((e) => e).toList();
 
   final dots = noteXML.findAllElements('dot').length;
 
@@ -386,17 +386,25 @@ Pitch? parsePitchXML(XmlElement pitchXML) {
   }
 }
 
+int currentBeamId = 0;
+int beamStructsOpen = 0;
+
 Beam? parseBeamXML(XmlElement beamXML) {
   final String? valueString = beamXML.innerText;
   final BeamValue? value = valueString != null
       ? BeamValue.values
           .firstWhere((e) => e.toString() == 'BeamValue.continued' ? valueString == 'continue' : e.toString() == 'BeamValue.$valueString')
       : null;
+  if(value == BeamValue.begin) {
+    beamStructsOpen++;
+  } else if(value == BeamValue.end) {
+    beamStructsOpen--;
+  }
 
   final int number = int.parse(beamXML.getAttribute('number') ?? '1');
 
   if (value != null) {
-    return Beam(number, value);
+    return Beam(beamStructsOpen > 0 || value == BeamValue.forward ? currentBeamId : currentBeamId++, number, value);
   } else {
     return null;
   }

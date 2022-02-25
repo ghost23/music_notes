@@ -1,24 +1,23 @@
 import 'dart:ui';
-import 'package:music_notes_2/notes/generated/glyph-definitions.dart';
 import 'package:music_notes_2/notes/notes.dart';
 
 import '../notes/render-functions/staff.dart';
 
 class Score {
   Score(this.parts);
-  final Iterable<Part> parts;
+  final List<Part> parts;
   get isEmpty => parts.isEmpty || parts.first.isEmpty;
 }
 
 class Part {
   Part(this.measures);
-  final Iterable<Measure> measures;
+  final List<Measure> measures;
   get isEmpty => measures.isEmpty;
 }
 
 class Measure {
   Measure(this.contents);
-  final Iterable<MeasureContent> contents;
+  final List<MeasureContent> contents;
   Attributes? get attributes {
     final attributes = contents.whereType<Attributes>();
     return attributes.isNotEmpty ? attributes.first : null;
@@ -82,7 +81,7 @@ class Attributes extends MeasureContent {
   final int? divisions;
   final MusicalKey? key;
   final int? staves;
-  final Iterable<Clef>? clefs;
+  final List<Clef>? clefs;
   final Time? time;
 
   bool get isValidForFirstMeasure =>
@@ -97,7 +96,7 @@ class Attributes extends MeasureContent {
       {int? divisions,
       MusicalKey? key,
       int? staves,
-      Iterable<Clef>? clefs,
+      List<Clef>? clefs,
       Time? time}) {
     return Attributes(
       divisions ?? this.divisions,
@@ -193,22 +192,22 @@ class Note extends MeasureContent {
   final int duration;
   final int voice;
   final int staff;
-  final Iterable<Notation> notations;
+  final List<Notation> notations;
 }
 
 class RestNote extends Note {
-  RestNote(int duration, int voice, int staff, Iterable<Notation> notations) : super(duration, voice, staff, notations);
+  RestNote(int duration, int voice, int staff, List<Notation> notations) : super(duration, voice, staff, notations);
 }
 
 class PitchNote extends Note {
-  PitchNote(int duration, int voice, int staff, Iterable<Notation> notations,
+  PitchNote(int duration, int voice, int staff, List<Notation> notations,
       this.pitch, this.type, this.stem, this.beams,
       {this.dots = 0, this.chord = false})
       : super(duration, voice, staff, notations);
   final Pitch pitch;
   final NoteLength type;
   final StemValue stem;
-  final Iterable<Beam> beams;
+  final List<Beam> beams;
   final int dots;
   final bool chord;
 
@@ -294,9 +293,15 @@ enum BeamValue { backward, begin, continued, end, forward }
 enum PlacementValue { above, below }
 
 class Beam {
-  Beam(this.number, this.value);
+  Beam(this.id, this.number, this.value);
+  final int id;
   final int number;
   final BeamValue value;
+
+  @override
+  String toString() {
+    return 'Beam(id: $id, number: $number, value: $value)';
+  }
 }
 
 class Pitch {

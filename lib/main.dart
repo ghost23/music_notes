@@ -7,7 +7,8 @@ import 'notes/music-line.dart';
 
 Future<Score> loadXML() async {
   final rawFile = await rootBundle.loadString('hanon-no1-stripped.musicxml');
-  return parseMusicXML(XmlDocument.parse(rawFile));
+  final result = parseMusicXML(XmlDocument.parse(rawFile));
+  return result;
 }
 
 const double STAFF_HEIGHT = 36;
