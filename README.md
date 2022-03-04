@@ -8,7 +8,7 @@ simple accidentals, bar lines and simple notes and simple note beams.
 It also has a very basic musicxml parser, that only supports, what this library
 is able to render.
 
-I only work on this infrequently when I have time and feel like it :)
+I only work on this infrequently when I have time and feel like it 🙂
 
 ### Screenshot
 ![Screenshot](/screenshot.png)
