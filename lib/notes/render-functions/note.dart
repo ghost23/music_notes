@@ -30,7 +30,7 @@ paintLedgers(
           numLedgersToDraw = ((note.positionalValue() -
                       bottomStaffLineNoteGClef.positionalValue()) /
                   2)
-              .floor();
+              .ceil();
         }
         break;
       }
@@ -47,7 +47,7 @@ paintLedgers(
           numLedgersToDraw = ((note.positionalValue() -
                       bottomStaffLineNoteFClef.positionalValue()) /
                   2)
-              .floor();
+              .ceil();
         }
       }
   }
@@ -140,7 +140,6 @@ paintPitchNote(DrawingContext drawC, PitchNote note, {bool noAdvance = false}) {
     final openBeams = getOpenBeams(currentBeamPointMapForThisId);
 
     if (openBeams.isEmpty) {
-      final int numBeams = currentBeamPointMapForThisId.length;
       for(final beamPoints in currentBeamPointMapForThisId.entries) {
         final BeamPoint start = beamPoints.value.first;
         final BeamPoint end = beamPoints.value.last;
@@ -183,7 +182,6 @@ paintPitchNote(DrawingContext drawC, PitchNote note, {bool noAdvance = false}) {
         paintBeam(drawC, startOffset, endOffset);
 
         for(final beamPoint in beamPoints.value) {
-          print('drawing stem for beampoint: ${beamPoint.beam.value}');
           Offset stemOffsetStart, stemOffsetEnd;
           if(beamPoint.drawAbove) {
             stemOffsetStart = drawC.canvas.globalToLocal(Offset(
