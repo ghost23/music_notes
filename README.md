@@ -1,18 +1,11 @@
 # music_notes
 
-This is in its infancy, so nothing works yet :)
+This flutter library (not actually a library at this point, more a dummy app)
+wants to render music notation. There is tons of things still
+missing. Currently it can only render staff systems (one or two), time signatures,
+simple accidentals, bar lines and simple notes and simple note beams.
 
-A new Flutter project.
+It also has a very basic musicxml parser, that only supports, what this library
+is able to render.
 
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://flutter.dev/docs/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://flutter.dev/docs/cookbook)
-
-For help getting started with Flutter, view our
-[online documentation](https://flutter.dev/docs), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+I only work on this infrequently when I have time and feel like it :)
