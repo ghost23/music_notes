@@ -193,4 +193,19 @@ class XCanvas implements Canvas {
   void transform(Float64List matrix4) {
     _canvas.transform(matrix4);
   }
+
+  @override
+  Rect getDestinationClipBounds() {
+    return _canvas.getDestinationClipBounds();
+  }
+
+  @override
+  Rect getLocalClipBounds() {
+    return _canvas.getLocalClipBounds();
+  }
+
+  @override
+  Float64List getTransform() {
+    return _canvas.getTransform();
+  }
 }
