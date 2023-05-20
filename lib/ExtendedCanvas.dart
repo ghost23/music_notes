@@ -208,4 +208,9 @@ class XCanvas implements Canvas {
   Float64List getTransform() {
     return _canvas.getTransform();
   }
+
+  @override
+  void restoreToCount(int count) {
+    _canvas.restoreToCount(count);
+  }
 }

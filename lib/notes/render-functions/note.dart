@@ -77,7 +77,7 @@ class PitchNoteRenderMeasurements {
   PitchNoteRenderMeasurements(this.boundingBox, this.noteAnchors);
 
   final Rect boundingBox;
-  final GlyphAnchor noteAnchors;
+  final GlyphAnchor ?noteAnchors;
 }
 
 paintPitchNote(DrawingContext drawC, PitchNote note, {bool noAdvance = false}) {
@@ -343,7 +343,7 @@ PitchNoteRenderMeasurements calculateNoteWidth(
 
   return PitchNoteRenderMeasurements(
     Rect.fromLTRB(leftBorder, topBorder, rightBorder, bottomBorder),
-    GLYPH_ANCHORS[noteGlyph]!.translate(Offset(0, (lineSpacing / 2) * offset)),
+    !drawBeamedNote ? GLYPH_ANCHORS[noteGlyph]!.translate(Offset(0, (lineSpacing / 2) * offset)) : null,
   );
 }
 
