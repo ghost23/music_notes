@@ -13,17 +13,17 @@ import '../../musicXML/data.dart';
 /// Advances to the end of the lines
 paintStaffLines(DrawingContext drawC, bool noAdvance) {
 
-  final lineSpacing = drawC.lineSpacing;
+  final lS = drawC.lineSpacing;
   final paint = Paint()..color = Colors.black;
-  paint.strokeWidth = lineSpacing * ENGRAVING_DEFAULTS.staffLineThickness;
+  paint.strokeWidth = lS * ENGRAVING_DEFAULTS.staffLineThickness;
 
   final lineWidth = drawC.size.width - drawC.canvas.getTranslation().dx;
 
   drawC.canvas.drawLine(Offset(0, 0), Offset(lineWidth, 0), paint);
-  drawC.canvas.drawLine(Offset(0, lineSpacing * 1), Offset(lineWidth, lineSpacing * 1), paint);
-  drawC.canvas.drawLine(Offset(0, lineSpacing * 2), Offset(lineWidth, lineSpacing * 2), paint);
-  drawC.canvas.drawLine(Offset(0, lineSpacing * 3), Offset(lineWidth, lineSpacing * 3), paint);
-  drawC.canvas.drawLine(Offset(0, lineSpacing * 4), Offset(lineWidth, lineSpacing * 4), paint);
+  drawC.canvas.drawLine(Offset(0, lS * 1), Offset(lineWidth, lS * 1), paint);
+  drawC.canvas.drawLine(Offset(0, lS * 2), Offset(lineWidth, lS * 2), paint);
+  drawC.canvas.drawLine(Offset(0, lS * 3), Offset(lineWidth, lS * 3), paint);
+  drawC.canvas.drawLine(Offset(0, lS * 4), Offset(lineWidth, lS * 4), paint);
 
   if(!noAdvance) {
     drawC.canvas.translate(lineWidth, 0);
@@ -38,6 +38,7 @@ enum BarLineTypes {
 paintBarLine(DrawingContext drawC, Barline barline, bool noAdvance) {
 
   final lS = drawC.lineSpacing;
+  final thinBarlineWidh = lS*ENGRAVING_DEFAULTS.thinBarlineThickness;
   final paint = Paint()..color = Colors.black;
   final staves = drawC.latestAttributes.staves!;
 
@@ -49,19 +50,19 @@ paintBarLine(DrawingContext drawC, Barline barline, bool noAdvance) {
   }
 
   if(barline.barStyle == BarLineTypes.regular) {
-    paint.strokeWidth = lS*ENGRAVING_DEFAULTS.thinBarlineThickness;
+    paint.strokeWidth = thinBarlineWidh;
     drawC.canvas.drawLine(startOffset, endOffset, paint);
-    drawC.canvas.translate(lS*ENGRAVING_DEFAULTS.thinBarlineThickness, 0);
+    drawC.canvas.translate(thinBarlineWidh, 0);
   } else if(barline.barStyle == BarLineTypes.lightLight) {
-    paint.strokeWidth = lS*ENGRAVING_DEFAULTS.thinBarlineThickness;
+    paint.strokeWidth = thinBarlineWidh;
     drawC.canvas.drawLine(startOffset, endOffset, paint);
-    drawC.canvas.translate(lS*ENGRAVING_DEFAULTS.barlineSeparation + lS*ENGRAVING_DEFAULTS.thinBarlineThickness, 0);
+    drawC.canvas.translate(lS*ENGRAVING_DEFAULTS.barlineSeparation + thinBarlineWidh, 0);
     drawC.canvas.drawLine(startOffset, endOffset, paint);
-    drawC.canvas.translate(lS*ENGRAVING_DEFAULTS.thinBarlineThickness, 0);
+    drawC.canvas.translate(thinBarlineWidh, 0);
   } else if(barline.barStyle == BarLineTypes.lightHeavy) {
-    paint.strokeWidth = lS*ENGRAVING_DEFAULTS.thinBarlineThickness;
+    paint.strokeWidth = thinBarlineWidh;
     drawC.canvas.drawLine(startOffset, endOffset, paint);
-    drawC.canvas.translate(lS*ENGRAVING_DEFAULTS.thinThickBarlineSeparation + lS*ENGRAVING_DEFAULTS.thinBarlineThickness, 0);
+    drawC.canvas.translate(lS*ENGRAVING_DEFAULTS.thinThickBarlineSeparation + thinBarlineWidh, 0);
     paint.strokeWidth = lS*ENGRAVING_DEFAULTS.thickBarlineThickness;
     drawC.canvas.drawLine(startOffset, endOffset, paint);
     drawC.canvas.translate(lS*ENGRAVING_DEFAULTS.thickBarlineThickness, 0);
@@ -69,7 +70,7 @@ paintBarLine(DrawingContext drawC, Barline barline, bool noAdvance) {
     paint.strokeWidth = lS*ENGRAVING_DEFAULTS.thickBarlineThickness;
     drawC.canvas.drawLine(startOffset, endOffset, paint);
     drawC.canvas.translate(lS*ENGRAVING_DEFAULTS.thinThickBarlineSeparation, 0);
-    paint.strokeWidth = lS*ENGRAVING_DEFAULTS.thinBarlineThickness;
+    paint.strokeWidth = thinBarlineWidh;
     drawC.canvas.drawLine(startOffset, endOffset, paint);
     drawC.canvas.translate(lS*ENGRAVING_DEFAULTS.repeatBarlineDotSeparation, 0);
     paintGlyph(drawC, Glyph.repeatDots);
@@ -77,9 +78,9 @@ paintBarLine(DrawingContext drawC, Barline barline, bool noAdvance) {
   } else if(barline.barStyle == BarLineTypes.repeatLeft) {
     paintGlyph(drawC, Glyph.repeatDots);
     drawC.canvas.translate(lS*GLYPH_ADVANCE_WIDTHS[Glyph.repeatDots]! + lS*ENGRAVING_DEFAULTS.repeatBarlineDotSeparation, 0);
-    paint.strokeWidth = lS*ENGRAVING_DEFAULTS.thinBarlineThickness;
+    paint.strokeWidth = thinBarlineWidh;
     drawC.canvas.drawLine(startOffset, endOffset, paint);
-    drawC.canvas.translate(lS*ENGRAVING_DEFAULTS.thinBarlineThickness + lS*ENGRAVING_DEFAULTS.thinThickBarlineSeparation, 0);
+    drawC.canvas.translate(thinBarlineWidh + lS*ENGRAVING_DEFAULTS.thinThickBarlineSeparation, 0);
     paint.strokeWidth = lS*ENGRAVING_DEFAULTS.thickBarlineThickness;
     drawC.canvas.drawLine(startOffset, endOffset, paint);
     drawC.canvas.translate(lS*ENGRAVING_DEFAULTS.thickBarlineThickness, 0);
@@ -92,19 +93,22 @@ paintBarLine(DrawingContext drawC, Barline barline, bool noAdvance) {
 
 calculateBarlineWidth(DrawingContext drawC, Barline barline) {
   final lS = drawC.lineSpacing;
+  final thinBarlineWidh = lS*ENGRAVING_DEFAULTS.thinBarlineThickness;
   double width = 0;
 
   if(barline.barStyle == BarLineTypes.regular) {
-    width = lS*ENGRAVING_DEFAULTS.thinBarlineThickness;
+    width = thinBarlineWidh;
   } else if(barline.barStyle == BarLineTypes.lightLight) {
-    width = lS*ENGRAVING_DEFAULTS.barlineSeparation + lS*ENGRAVING_DEFAULTS.thinBarlineThickness + lS*ENGRAVING_DEFAULTS.thinBarlineThickness;
+    width = lS*ENGRAVING_DEFAULTS.barlineSeparation + thinBarlineWidh + thinBarlineWidh;
   } else if(barline.barStyle == BarLineTypes.heavyHeavy) {
-    width = lS*ENGRAVING_DEFAULTS.thinThickBarlineSeparation + lS*ENGRAVING_DEFAULTS.thinBarlineThickness + lS*ENGRAVING_DEFAULTS.thickBarlineThickness;
+    width = lS*ENGRAVING_DEFAULTS.thinThickBarlineSeparation + thinBarlineWidh + lS*ENGRAVING_DEFAULTS.thickBarlineThickness;
   } else if(barline.barStyle == BarLineTypes.repeatRight) {
-    width = lS*ENGRAVING_DEFAULTS.thinThickBarlineSeparation + lS*ENGRAVING_DEFAULTS.repeatBarlineDotSeparation + lS*GLYPH_ADVANCE_WIDTHS[Glyph.repeatDots]!;
+    width = lS*ENGRAVING_DEFAULTS.thickBarlineThickness
+        + lS*ENGRAVING_DEFAULTS.thinThickBarlineSeparation + thinBarlineWidh
+        + lS*ENGRAVING_DEFAULTS.repeatBarlineDotSeparation + lS*GLYPH_ADVANCE_WIDTHS[Glyph.repeatDots]!;
   } else if(barline.barStyle == BarLineTypes.repeatLeft) {
     width = lS*GLYPH_ADVANCE_WIDTHS[Glyph.repeatDots]! + lS*ENGRAVING_DEFAULTS.repeatBarlineDotSeparation
-        + lS*ENGRAVING_DEFAULTS.thinBarlineThickness + lS*ENGRAVING_DEFAULTS.thinThickBarlineSeparation
+        + thinBarlineWidh + lS*ENGRAVING_DEFAULTS.thinThickBarlineSeparation
         + lS*ENGRAVING_DEFAULTS.thickBarlineThickness;
   }
 
@@ -126,7 +130,7 @@ bool paintAccidentalsForTone(DrawingContext drawC, Clefs staff, Fifths tone, {bo
       paintGlyph(
         drawC,
         accidentalGlyphMap[note.accidental]!,
-        yOffset: (lineSpacing/2) * calculateYOffsetForNote(staff, note.positionalValue()),
+        yOffset: (lineSpacing/2) * calculateYOffsetForNote(staff, note.positionalValue),
       );
       didDrawSomething = true;
     }

@@ -1,7 +1,5 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:music_notes_2/notes/music-line.dart';
-import 'common.dart';
 import '../generated/glyph-advance-widths.dart';
 import '../generated/glyph-definitions.dart';
 
@@ -28,4 +26,4 @@ paintGlyph(DrawingContext drawC, Glyph glyph, {double yOffset = 0, bool noAdvanc
 }
 
 double calculateGlyphWidth(DrawingContext drawC, Glyph glyph) =>
-    GLYPH_ADVANCE_WIDTHS[glyph]! * getLineSpacing(drawC.staffHeight);
+    GLYPH_ADVANCE_WIDTHS[glyph]! * drawC.lineSpacing;

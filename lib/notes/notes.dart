@@ -65,7 +65,7 @@ const Map<Accidentals, Glyph?> accidentalGlyphMap = {
 
 ///Whenever you see something with 'numericValue' in it, it is a representation
 ///of an absolute note position. The capital C is numericValue = 0, small c = 12, c' = 24, etc.
-///you know, the octaves. So a D in the octave of capital C would be = 2, and so on.
+///you know, the octaves. So a D in the octave of capital C would = 2, and so on.
 
 BaseTones baseToneFromNumericValue(int value, bool preferSharp) {
   final valueWithinOctave = value % 12;
@@ -98,6 +98,13 @@ Accidentals accidentalFromNumericValue(int value, bool preferSharp) {
   }
 }
 
+class XPositionedMeasureContent {
+  const XPositionedMeasureContent({required this.xPosition, required this.measureContent});
+
+  final double xPosition;
+  final MeasureContent measureContent;
+}
+
 /// A data representation of almost anything - but mostly notes - that can be put on staves,
 /// like notes, accidentals, legers, articulation glyphs, etc.
 /// It is more a positional info object. Maybe we should not actually call it Note?!
@@ -116,44 +123,44 @@ class NotePosition {
       accidental = accidentalFromNumericValue(value, preferSharp);
 
   int diffToNote(NotePosition other) {
-    return numericValue() - other.numericValue();
+    return numericValue - other.numericValue;
   }
 
-  int numericValue() {
+  int get numericValue {
     return octave * 12 + (numericValueOfBaseTone[tone]! + numericValueOfAccidental[accidental]!);
   }
 
   /// positional value is a value to determine where on a stave a note should be put.
   /// So here we only care about the "white keys"-notes, which I called BaseNotes up above.
   /// That's why an octave here has only 7 notes in it.
-  int positionalValue() {
+  int get positionalValue {
     return octave * 7 + BaseTones.values.indexOf(tone);
   }
 
   @override
   bool operator ==(Object other) {
     return other is NotePosition &&
-      numericValue() == other.numericValue();
+      numericValue == other.numericValue;
   }
 
   bool operator >(Object other) {
     return other is NotePosition &&
-    numericValue() > other.numericValue();
+    numericValue > other.numericValue;
   }
 
   bool operator >=(Object other) {
     return other is NotePosition &&
-        numericValue() >= other.numericValue();
+        numericValue >= other.numericValue;
   }
 
   bool operator <(Object other) {
     return other is NotePosition &&
-        numericValue() < other.numericValue();
+        numericValue < other.numericValue;
   }
 
   bool operator <=(Object other) {
     return other is NotePosition &&
-        numericValue() <= other.numericValue();
+        numericValue <= other.numericValue;
   }
 
   @override

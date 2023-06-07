@@ -1,7 +1,4 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
-
 import '../../musicXML/data.dart';
 import '../generated/engraving-defaults.dart';
 import '../generated/glyph-advance-widths.dart';
@@ -19,16 +16,16 @@ paintLedgers(
   switch (staff) {
     case Clefs.G:
       {
-        if (note.positionalValue() >
-            topStaffLineNoteGClef.positionalValue() + 1) {
-          numLedgersToDraw = ((note.positionalValue() -
-                      topStaffLineNoteGClef.positionalValue()) /
+        if (note.positionalValue >
+            topStaffLineNoteGClef.positionalValue + 1) {
+          numLedgersToDraw = ((note.positionalValue -
+                      topStaffLineNoteGClef.positionalValue) /
                   2)
               .floor();
-        } else if (note.positionalValue() <
-            bottomStaffLineNoteGClef.positionalValue() - 1) {
-          numLedgersToDraw = ((note.positionalValue() -
-                      bottomStaffLineNoteGClef.positionalValue()) /
+        } else if (note.positionalValue <
+            bottomStaffLineNoteGClef.positionalValue - 1) {
+          numLedgersToDraw = ((note.positionalValue -
+                      bottomStaffLineNoteGClef.positionalValue) /
                   2)
               .ceil();
         }
@@ -36,16 +33,16 @@ paintLedgers(
       }
     case Clefs.F:
       {
-        if (note.positionalValue() >
-            topStaffLineNoteFClef.positionalValue() + 1) {
-          numLedgersToDraw = ((note.positionalValue() -
-                      topStaffLineNoteFClef.positionalValue()) /
+        if (note.positionalValue >
+            topStaffLineNoteFClef.positionalValue + 1) {
+          numLedgersToDraw = ((note.positionalValue -
+                      topStaffLineNoteFClef.positionalValue) /
                   2)
               .floor();
-        } else if (note.positionalValue() <
-            bottomStaffLineNoteFClef.positionalValue() - 1) {
-          numLedgersToDraw = ((note.positionalValue() -
-                      bottomStaffLineNoteFClef.positionalValue()) /
+        } else if (note.positionalValue <
+            bottomStaffLineNoteFClef.positionalValue - 1) {
+          numLedgersToDraw = ((note.positionalValue -
+                      bottomStaffLineNoteFClef.positionalValue) /
                   2)
               .ceil();
         }
@@ -87,7 +84,7 @@ paintPitchNote(DrawingContext drawC, PitchNote note, {bool noAdvance = false}) {
   final staff = drawC.latestAttributes.clefs!
       .firstWhere((clef) => clef.staffNumber == note.staff)
       .sign;
-  int offset = calculateYOffsetForNote(staff, notePosition.positionalValue());
+  int offset = calculateYOffsetForNote(staff, notePosition.positionalValue);
   bool drawNoteWithStem = note.beams.isEmpty;
 
   if (noAdvance) {
@@ -248,7 +245,7 @@ paintPitchNote(DrawingContext drawC, PitchNote note, {bool noAdvance = false}) {
       drawC,
       accidentalGlyph,
       yOffset: (lineSpacing / 2) *
-          calculateYOffsetForNote(staff, notePosition.positionalValue()),
+          calculateYOffsetForNote(staff, notePosition.positionalValue),
       noAdvance: true,
     );
   }
@@ -307,7 +304,7 @@ PitchNoteRenderMeasurements calculateNoteWidth(
   final staff = drawC.latestAttributes.clefs!
       .firstWhere((clef) => clef.staffNumber == note.staff)
       .sign;
-  int offset = calculateYOffsetForNote(staff, notePosition.positionalValue());
+  int offset = calculateYOffsetForNote(staff, notePosition.positionalValue);
   bool drawBeamedNote = note.beams.isEmpty;
 
   final noteGlyph = drawBeamedNote
@@ -329,11 +326,11 @@ PitchNoteRenderMeasurements calculateNoteWidth(
         ENGRAVING_DEFAULTS.barlineSeparation * lineSpacing;
 
     final potTopBorder = (lineSpacing / 2) *
-            calculateYOffsetForNote(staff, notePosition.positionalValue()) +
+            calculateYOffsetForNote(staff, notePosition.positionalValue) +
         GLYPH_BBOXES[accidentalGlyph]!.northEast.dy;
 
     final potBottomBorder = (lineSpacing / 2) *
-            calculateYOffsetForNote(staff, notePosition.positionalValue()) +
+            calculateYOffsetForNote(staff, notePosition.positionalValue) +
         GLYPH_BBOXES[accidentalGlyph]!.southWest.dy;
 
     topBorder = potTopBorder < topBorder ? potTopBorder : topBorder;
@@ -380,9 +377,9 @@ const Map<Clefs, NotePosition> bottomStaffLineNote = {
 int calculateYOffsetForNote(Clefs clef, int positionalValue) {
   int diff = 0;
   if (clef == Clefs.G) {
-    diff = stdNotePositionGClef.positionalValue() - positionalValue;
+    diff = stdNotePositionGClef.positionalValue - positionalValue;
   } else if (clef == Clefs.F) {
-    diff = stdNotePositionFClef.positionalValue() - positionalValue;
+    diff = stdNotePositionFClef.positionalValue - positionalValue;
   }
   return diff;
 }

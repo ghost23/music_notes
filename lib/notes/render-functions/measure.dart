@@ -1,21 +1,34 @@
 import 'dart:math';
-import 'dart:ui';
-
+import 'package:flutter/material.dart';
 import 'package:music_notes_2/notes/generated/engraving-defaults.dart';
+import 'package:music_notes_2/notes/generated/glyph-definitions.dart';
 import 'package:music_notes_2/notes/render-functions/glyph.dart';
 import 'package:music_notes_2/notes/render-functions/note.dart';
 
+import '../generated/glyph-advance-widths.dart';
 import '../music-line.dart';
 import '../notes.dart';
 import '../render-functions/staff.dart';
 import '../../musicXML/data.dart';
 import 'package:collection/collection.dart';
 
-paintMeasure(Measure measure, DrawingContext drawC) {
-  bool paintedBarline = false;
+import 'common.dart';
 
-  final grid = createGridForMeasure(measure, drawC);
+paintMeasure(Measure measure, DrawingContext drawC) {
+  Barline? paintedBarline;
+
+  /*final debugPaintLeft = Paint()..color = Colors.red;
+  debugPaintLeft.strokeWidth = 3;
+  final debugPaintRight = Paint()..color = Colors.green;
+  debugPaintRight.strokeWidth = 3;*/
+
+  final (grid, positioned) = createGridForMeasure(measure, drawC);
   print('paint measure');
+  double leftEnd = 0;
+  if(measure.attributes == null) {
+    leftEnd = drawC.canvas.getTranslation().dx;
+    //drawC.canvas.drawLine(Offset(0, 0), Offset(0, 5), debugPaintLeft);
+  }
 
   grid.forEachIndexed((columnIndex, column) {
     final measurements = column.whereType<PitchNote>().map((element) => calculateNoteWidth(drawC, element));
@@ -25,13 +38,14 @@ paintMeasure(Measure measure, DrawingContext drawC) {
       bool isLastElement = index == column.length-1;
       switch(measureContent.runtimeType) {
         case Barline: {
-          paintBarLine(drawC, measureContent as Barline, false);
-          drawC.canvas.translate(drawC.lineSpacing * 1, 0);
-          paintedBarline = true;
+          paintedBarline = measureContent as Barline;
           break;
         }
         case Attributes: {
-          paintMeasureAttributes(measureContent as Attributes, drawC); break;
+          paintMeasureAttributes(measureContent as Attributes, drawC);
+          leftEnd = drawC.canvas.getTranslation().dx;
+          //drawC.canvas.drawLine(Offset(0, 0), Offset(0, 5), debugPaintLeft);
+          break;
         }
         case Direction: {
           paintDirection(measureContent as Direction, drawC); break;
@@ -57,10 +71,30 @@ paintMeasure(Measure measure, DrawingContext drawC) {
     }
   });
 
-  if(!paintedBarline) {
-    paintBarLine(drawC, Barline(BarLineTypes.regular), false);
-    drawC.canvas.translate(drawC.lineSpacing * 1, 0);
-  }
+  final rightEnd = drawC.canvas.getTranslation().dx;
+  //drawC.canvas.drawLine(Offset(0, 5), Offset(0, 10), debugPaintRight);
+  final measureWidth = rightEnd - leftEnd;
+
+  positioned.forEach((xPosElement) {
+    drawC.canvas.save();
+    drawC.canvas.translate(-measureWidth*xPosElement.xPosition, 0);
+    switch(xPosElement.measureContent.runtimeType) {
+      case PitchNote: {
+        paintPitchNote(drawC, xPosElement.measureContent as PitchNote, noAdvance: true); break;
+      }
+      case RestNote: {
+        drawC.canvas.translate(-GLYPH_ADVANCE_WIDTHS[Glyph.restHalf]! / 2, 0);
+        paintRestNote(drawC, xPosElement.measureContent as RestNote, noAdvance: true); break;
+      }
+      default: {
+        throw new FormatException('${xPosElement.measureContent.runtimeType} is an invalid MeasureContent type');
+      }
+    }
+    drawC.canvas.restore();
+  });
+
+  paintBarLine(drawC, paintedBarline ?? Barline(BarLineTypes.regular), false);
+  drawC.canvas.translate(drawC.lineSpacing * 1, 0);
 }
 
 Rect calculateColumnAlignment(DrawingContext drawC, Iterable<PitchNoteRenderMeasurements> measurements) {
@@ -71,7 +105,7 @@ Rect calculateColumnAlignment(DrawingContext drawC, Iterable<PitchNoteRenderMeas
   return Rect.fromLTRB(leftOffset, 0, rightOffset, 0);
 }
 
-List<List<MeasureContent>> createGridForMeasure(Measure measure, DrawingContext drawC) {
+(List<List<MeasureContent>> grid, List<XPositionedMeasureContent> positioned) createGridForMeasure(Measure measure, DrawingContext drawC) {
   print('prepare grid for measure');
   final columnsOnFourFour = drawC.latestAttributes.divisions! * 4;
   final currentTimeFactor = drawC.latestAttributes.time!.beats / drawC.latestAttributes.time!.beatType;
@@ -81,12 +115,13 @@ List<List<MeasureContent>> createGridForMeasure(Measure measure, DrawingContext 
     throw new FormatException('Found divisions of ${drawC.latestAttributes.divisions} on a Time of ${drawC.latestAttributes.time!.beats}/${drawC.latestAttributes.time!.beatType}, which does not work.');
   }
   final List<List<MeasureContent>> grid = List.generate(columnsOnCurrentTime.toInt()+1, (i) => []);
+  final List<XPositionedMeasureContent> positioned = [];
   int currentColumnPointer = 0;
   int? chordDuration;
   List<MeasureContent> currentColumn = grid[currentColumnPointer];
   measure.contents.forEachIndexed((index, element) {
     if(currentColumnPointer >= grid.length) {
-      throw new FormatException('currentColumnPointer can only beyond end of grid length, if next element is Backup. But was: ${element.runtimeType.toString()}');
+      throw new FormatException('currentColumnPointer can only point beyond end of grid length, if next element is Backup. But was: ${element.runtimeType.toString()}');
     } else {
       currentColumn = grid[currentColumnPointer];
     }
@@ -100,31 +135,43 @@ List<List<MeasureContent>> createGridForMeasure(Measure measure, DrawingContext 
       }
       case RestNote:
       case PitchNote: {
-        currentColumn.add(element);
-        if(element is Note && index < measure.contents.length - 1) {
-          final nextElement = measure.contents.elementAt(index + 1);
-          if(element is PitchNote && nextElement is PitchNote) {
-            element.beams.toList();
-            if (!element.chord) {
-              if (nextElement.chord) {
-                // next element is chord note, so we save the current
-                chordDuration = element.duration;
+        if(element is PitchNote) {
+          currentColumn.add(element);
+          if(index < measure.contents.length - 1) {
+            final nextElement = measure.contents.elementAt(index + 1);
+            if (nextElement is PitchNote) {
+              element.beams
+                  .toList(); // This makes the lazy xml parser actually traverse all beams
+              if (!element.chord) {
+                if (nextElement.chord) {
+                  // next element is chord note, so we save the current
+                  chordDuration = element.duration;
+                } else {
+                  currentColumnPointer += element.duration;
+                }
               } else {
-                currentColumnPointer += element.duration;
+                if (!nextElement.chord) {
+                  // next element is not a chord note anymore, so apply saved chordDuration
+                  if (chordDuration == null) {
+                    throw new FormatException('End of a chord reached, should have chordDuration, but is null.');
+                  }
+                  currentColumnPointer += chordDuration!;
+                  chordDuration = null;
+                }
               }
             } else {
-              if (!nextElement.chord) {
-                // next element is not a chord note anymore, so apply saved chordDuration
-                if(chordDuration == null) {
-                  throw new FormatException('End of a chord reached, should have chordDuration, but is null.');
-                }
-                currentColumnPointer += chordDuration!;
-                chordDuration = null;
-              }
+              currentColumnPointer += element.duration;
             }
           } else {
             currentColumnPointer += element.duration;
           }
+        } else if(element is RestNote) {
+          if (columnsOnCurrentTime / element.duration == 1) {
+            positioned.add(XPositionedMeasureContent(xPosition: 0.5, measureContent: element));
+          } else {
+            currentColumn.add(element);
+          }
+          currentColumnPointer += element.duration;
         }
         break;
       }
@@ -145,7 +192,7 @@ List<List<MeasureContent>> createGridForMeasure(Measure measure, DrawingContext 
       }
     }
   });
-  return grid;
+  return (grid, positioned);
 }
 
 paintMeasureAttributes(Attributes attributes, DrawingContext drawC) {
@@ -154,42 +201,43 @@ paintMeasureAttributes(Attributes attributes, DrawingContext drawC) {
   final clefs = attributes.clefs;
   final lineSpacing = drawC.lineSpacing;
 
-  if(fifths != null && staves != null && clefs != null) {
-    clefs
-        .sorted((a, b) => a.staffNumber - b.staffNumber)
-        .forEachIndexed((index, clef) {
-      paintGlyph(
-          drawC,
-          clefToGlyphMap[clef.sign]!,
-          yOffset: (drawC.staffHeight + drawC.staffsSpacing)*(clef.staffNumber-1)
-              + (lineSpacing*clefToPositionOffsetMap[clef.sign]!),
-          noAdvance: index < (clefs.length-1)
-      );
-    });
-    drawC.canvas.translate(drawC.lineSpacing * 1, 0);
-  }
+  if(staves != null && clefs != null) {
 
-  if(fifths != null && staves != null && clefs != null) {
-    bool didDrawSomething = false;
-    clefs
-        .sorted((a, b) => a.staffNumber - b.staffNumber)
-        .forEachIndexed((index, clef) {
-      drawC.canvas.translate(0, (drawC.staffHeight + drawC.staffsSpacing)*(clef.staffNumber-1));
-      didDrawSomething |= paintAccidentalsForTone(drawC, clef.sign, fifths, noAdvance: index < (clefs.length-1));
-      drawC.canvas.translate(0, -(drawC.staffHeight + drawC.staffsSpacing)*(clef.staffNumber-1));
-    });
-    if(didDrawSomething) drawC.canvas.translate(drawC.lineSpacing * 1, 0);
-  }
+    if(fifths != null) {
+      clefs
+          .sorted((a, b) => a.staffNumber - b.staffNumber)
+          .forEachIndexed((index, clef) {
+        paintGlyph(
+            drawC,
+            clefToGlyphMap[clef.sign]!,
+            yOffset: staffYPos(drawC, clef.staffNumber)
+                + (lineSpacing*clefToPositionOffsetMap[clef.sign]!),
+            noAdvance: index < (clefs.length-1)
+        );
+      });
+      drawC.canvas.translate(drawC.lineSpacing * 1, 0);
 
-  if(attributes.time != null && staves != null && clefs != null) {
-    clefs
-        .sorted((a, b) => a.staffNumber - b.staffNumber)
-        .forEachIndexed((index, clef) {
-      drawC.canvas.translate(0, (drawC.staffHeight + drawC.staffsSpacing)*(clef.staffNumber-1));
-      paintTimeSignature(drawC, attributes, noAdvance: index < (clefs.length-1));
-      drawC.canvas.translate(0, -(drawC.staffHeight + drawC.staffsSpacing)*(clef.staffNumber-1));
-    });
-    drawC.canvas.translate(drawC.lineSpacing * 1, 0);
+      bool didDrawSomething = false;
+      clefs
+          .sorted((a, b) => a.staffNumber - b.staffNumber)
+          .forEachIndexed((index, clef) {
+        drawC.canvas.translate(0, staffYPos(drawC, clef.staffNumber));
+        didDrawSomething |= paintAccidentalsForTone(drawC, clef.sign, fifths, noAdvance: index < (clefs.length-1));
+        drawC.canvas.translate(0, -staffYPos(drawC, clef.staffNumber));
+      });
+      if(didDrawSomething) drawC.canvas.translate(drawC.lineSpacing * 1, 0);
+    }
+
+    if(attributes.time != null) {
+      clefs
+          .sorted((a, b) => a.staffNumber - b.staffNumber)
+          .forEachIndexed((index, clef) {
+        drawC.canvas.translate(0, staffYPos(drawC, clef.staffNumber));
+        paintTimeSignature(drawC, attributes, noAdvance: index < (clefs.length-1));
+        drawC.canvas.translate(0, -staffYPos(drawC, clef.staffNumber));
+      });
+      drawC.canvas.translate(drawC.lineSpacing * 1, 0);
+    }
   }
 }
 
