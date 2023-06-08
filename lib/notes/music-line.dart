@@ -242,10 +242,17 @@ class ForegroundPainter extends CustomPainter {
               lineSpacing * ENGRAVING_DEFAULTS.barlineSeparation * 2,
           0);
     }
-
-    options.score.parts.first.measures.toList().forEachIndexed((index, measure) {
+    final measures = options.score.parts.first.measures.toList();
+    measures.forEachIndexed((index, measure) {
       drawC.currentMeasure = index;
+      if(index > 0) {
+        drawC.canvas.translate(drawC.lineSpacing * 1, 0);
+      }
       paintMeasure(measure, drawC);
+
+      drawC.canvas.translate(drawC.lineSpacing * 1, 0);
+
+      paintBarLine(drawC, measure.barline, false);
     });
   }
 

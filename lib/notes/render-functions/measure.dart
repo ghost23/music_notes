@@ -15,20 +15,18 @@ import 'package:collection/collection.dart';
 import 'common.dart';
 
 paintMeasure(Measure measure, DrawingContext drawC) {
-  Barline? paintedBarline;
-
   /*final debugPaintLeft = Paint()..color = Colors.red;
   debugPaintLeft.strokeWidth = 3;
   final debugPaintRight = Paint()..color = Colors.green;
   debugPaintRight.strokeWidth = 3;*/
 
   final (grid, positioned) = createGridForMeasure(measure, drawC);
-  print('paint measure');
   double leftEnd = 0;
   if(measure.attributes == null) {
     leftEnd = drawC.canvas.getTranslation().dx;
     //drawC.canvas.drawLine(Offset(0, 0), Offset(0, 5), debugPaintLeft);
   }
+  print('num columns: ${grid.length}');
 
   grid.forEachIndexed((columnIndex, column) {
     final measurements = column.whereType<PitchNote>().map((element) => calculateNoteWidth(drawC, element));
@@ -37,10 +35,7 @@ paintMeasure(Measure measure, DrawingContext drawC) {
     column.forEachIndexed((index, measureContent) {
       bool isLastElement = index == column.length-1;
       switch(measureContent.runtimeType) {
-        case Barline: {
-          paintedBarline = measureContent as Barline;
-          break;
-        }
+        case Barline: break;
         case Attributes: {
           paintMeasureAttributes(measureContent as Attributes, drawC);
           leftEnd = drawC.canvas.getTranslation().dx;
@@ -66,7 +61,7 @@ paintMeasure(Measure measure, DrawingContext drawC) {
 
     // TODO: Spacing between columns, currently static, probably needs to be dynamic
     // to justify measures for the whole line
-    if(column.length > 0) {
+    if(column.length > 0 && columnIndex < grid.length - 1) {
       drawC.canvas.translate(drawC.lineSpacing * 1, 0);
     }
   });
@@ -92,9 +87,6 @@ paintMeasure(Measure measure, DrawingContext drawC) {
     }
     drawC.canvas.restore();
   });
-
-  paintBarLine(drawC, paintedBarline ?? Barline(BarLineTypes.regular), false);
-  drawC.canvas.translate(drawC.lineSpacing * 1, 0);
 }
 
 Rect calculateColumnAlignment(DrawingContext drawC, Iterable<PitchNoteRenderMeasurements> measurements) {
@@ -106,7 +98,6 @@ Rect calculateColumnAlignment(DrawingContext drawC, Iterable<PitchNoteRenderMeas
 }
 
 (List<List<MeasureContent>> grid, List<XPositionedMeasureContent> positioned) createGridForMeasure(Measure measure, DrawingContext drawC) {
-  print('prepare grid for measure');
   final columnsOnFourFour = drawC.latestAttributes.divisions! * 4;
   final currentTimeFactor = drawC.latestAttributes.time!.beats / drawC.latestAttributes.time!.beatType;
   final columnsOnCurrentTime = columnsOnFourFour * currentTimeFactor;
@@ -114,21 +105,24 @@ Rect calculateColumnAlignment(DrawingContext drawC, Iterable<PitchNoteRenderMeas
     // Not a whole number. Means, the divisions number does not work for the Time. This is an error!
     throw new FormatException('Found divisions of ${drawC.latestAttributes.divisions} on a Time of ${drawC.latestAttributes.time!.beats}/${drawC.latestAttributes.time!.beatType}, which does not work.');
   }
-  final List<List<MeasureContent>> grid = List.generate(columnsOnCurrentTime.toInt()+1, (i) => []);
+  final measureHasAttributes = measure.attributes != null;
+  final List<List<MeasureContent>> grid = List.generate(columnsOnCurrentTime.toInt()+(measureHasAttributes?1:0), (i) => []);
   final List<XPositionedMeasureContent> positioned = [];
   int currentColumnPointer = 0;
   int? chordDuration;
   List<MeasureContent> currentColumn = grid[currentColumnPointer];
   measure.contents.forEachIndexed((index, element) {
-    if(currentColumnPointer >= grid.length) {
-      throw new FormatException('currentColumnPointer can only point beyond end of grid length, if next element is Backup. But was: ${element.runtimeType.toString()}');
-    } else {
+    if(currentColumnPointer >= grid.length && element.runtimeType != Backup && element.runtimeType != Barline) {
+      throw new FormatException('currentColumnPointer can only point beyond end of grid length, if next element is Backup or Barline. But was: ${element.runtimeType.toString()}');
+    } else if(currentColumnPointer < grid.length) {
       currentColumn = grid[currentColumnPointer];
     }
     switch(element.runtimeType) {
       case Barline: currentColumn.add(element); break;
       case Attributes: {
-        currentColumn.insert(0, element); break;
+        currentColumn.add(element);
+        currentColumnPointer++;
+        break;
       }
       case Direction: {
         currentColumn.add(element); break;

@@ -22,6 +22,10 @@ class Measure {
     final attributes = contents.whereType<Attributes>();
     return attributes.isNotEmpty ? attributes.first : null;
   }
+  Barline get barline {
+    final barline = contents.whereType<Barline>();
+    return barline.isNotEmpty ? barline.first : Barline(BarLineTypes.regular);
+  }
 }
 
 class MeasureContent {}
