@@ -5,8 +5,8 @@ import '../generated/glyph-advance-widths.dart';
 import '../generated/glyph-anchors.dart';
 import '../generated/glyph-bboxes.dart';
 import '../generated/glyph-range-definitions.dart';
-import '../music-line.dart';
 import '../notes.dart';
+import 'DrawingContext.dart';
 import 'beam.dart';
 import 'glyph.dart';
 
@@ -49,7 +49,7 @@ paintLedgers(
       }
   }
 
-  double lineSpacing = drawC.lineSpacing;
+  double lineSpacing = drawC.lS;
   final paint = Paint()..color = Colors.black;
   paint.strokeWidth = lineSpacing * ENGRAVING_DEFAULTS.staffLineThickness;
   double noteWidth =
@@ -79,7 +79,7 @@ class PitchNoteRenderMeasurements {
 
 paintPitchNote(DrawingContext drawC, PitchNote note, {bool noAdvance = false}) {
   final notePosition = note.notePosition;
-  final lineSpacing = drawC.lineSpacing;
+  final lS = drawC.lS;
   final tone = drawC.latestAttributes.key!.fifths;
   final staff = drawC.latestAttributes.clefs!
       .firstWhere((clef) => clef.staffNumber == note.staff)
@@ -105,7 +105,7 @@ paintPitchNote(DrawingContext drawC, PitchNote note, {bool noAdvance = false}) {
   paintGlyph(
     drawC,
     noteGlyph,
-    yOffset: (lineSpacing / 2) * offset,
+    yOffset: (lS / 2) * offset,
     noAdvance: true,
   );
 
@@ -127,7 +127,7 @@ paintPitchNote(DrawingContext drawC, PitchNote note, {bool noAdvance = false}) {
       currentBeamPointMapForThisId[elmt.number]!.add(
         BeamPoint(
           elmt,
-          drawC.canvas.localToGlobal(Offset(0, (lineSpacing / 2) * offset)),
+          drawC.canvas.localToGlobal(Offset(0, (lS / 2) * offset)),
           noteAnchor!,
           beamAbove,
         ),
@@ -141,38 +141,38 @@ paintPitchNote(DrawingContext drawC, PitchNote note, {bool noAdvance = false}) {
         final BeamPoint start = beamPoints.value.first;
         final BeamPoint end = beamPoints.value.last;
 
-        final double steamLength = lineSpacing*2 + beamPoints.key * (ENGRAVING_DEFAULTS.beamThickness*lineSpacing + ENGRAVING_DEFAULTS.beamSpacing*lineSpacing);
+        final double stemLength = lS*2 + beamPoints.key * (ENGRAVING_DEFAULTS.beamThickness*lS + ENGRAVING_DEFAULTS.beamSpacing*lS);
 
         Offset startOffset, endOffset;
         if (start.drawAbove) {
           startOffset = drawC.canvas.globalToLocal(Offset(
-            start.notePosition.dx + start.noteAnchor.stemUpSE.dx * lineSpacing,
+            start.notePosition.dx + start.noteAnchor.stemUpSE.dx * lS,
             start.notePosition.dy +
                 (drawC.staffHeight/2) -
-                steamLength - (ENGRAVING_DEFAULTS.beamThickness*lineSpacing) +
-                start.noteAnchor.stemUpSE.dy * lineSpacing,
+                stemLength - (ENGRAVING_DEFAULTS.beamThickness*lS) +
+                start.noteAnchor.stemUpSE.dy * lS,
           ));
           endOffset = drawC.canvas.globalToLocal(Offset(
-            end.notePosition.dx + end.noteAnchor.stemUpSE.dx * lineSpacing,
+            end.notePosition.dx + end.noteAnchor.stemUpSE.dx * lS,
             end.notePosition.dy +
                 (drawC.staffHeight/2) -
-                steamLength - (ENGRAVING_DEFAULTS.beamThickness*lineSpacing) +
-                end.noteAnchor.stemUpSE.dy * lineSpacing,
+                stemLength - (ENGRAVING_DEFAULTS.beamThickness*lS) +
+                end.noteAnchor.stemUpSE.dy * lS,
           ));
         } else {
           startOffset = drawC.canvas.globalToLocal(Offset(
-            start.notePosition.dx + start.noteAnchor.stemDownNW.dx * lineSpacing,
+            start.notePosition.dx + start.noteAnchor.stemDownNW.dx * lS,
             start.notePosition.dy +
                 (drawC.staffHeight/2) +
-                steamLength +
-                start.noteAnchor.stemDownNW.dy * lineSpacing,
+                stemLength +
+                start.noteAnchor.stemDownNW.dy * lS,
           ));
           endOffset = drawC.canvas.globalToLocal(Offset(
-            end.notePosition.dx + end.noteAnchor.stemDownNW.dx * lineSpacing,
+            end.notePosition.dx + end.noteAnchor.stemDownNW.dx * lS,
             end.notePosition.dy +
                 (drawC.staffHeight/2) +
-                steamLength +
-                end.noteAnchor.stemDownNW.dy * lineSpacing,
+                stemLength +
+                end.noteAnchor.stemDownNW.dy * lS,
           ));
         }
 
@@ -182,40 +182,40 @@ paintPitchNote(DrawingContext drawC, PitchNote note, {bool noAdvance = false}) {
           Offset stemOffsetStart, stemOffsetEnd;
           if(beamPoint.drawAbove) {
             stemOffsetStart = drawC.canvas.globalToLocal(Offset(
-              beamPoint.notePosition.dx + beamPoint.noteAnchor.stemUpSE.dx * lineSpacing,
+              beamPoint.notePosition.dx + beamPoint.noteAnchor.stemUpSE.dx * lS,
               beamPoint.notePosition.dy +
                   (drawC.staffHeight/2) +
-                  beamPoint.noteAnchor.stemUpSE.dy * lineSpacing,
+                  beamPoint.noteAnchor.stemUpSE.dy * lS,
             ));
 
             final startOffsetGlobal = drawC.canvas.localToGlobal(startOffset);
             final endOffsetGlobal = drawC.canvas.localToGlobal(endOffset);
 
-            double stemOffsetYEnd = ((beamPoint.notePosition.dx + beamPoint.noteAnchor.stemUpSE.dx * lineSpacing) - startOffsetGlobal.dx) *
+            double stemOffsetYEnd = ((beamPoint.notePosition.dx + beamPoint.noteAnchor.stemUpSE.dx * lS) - startOffsetGlobal.dx) *
                 ((endOffsetGlobal.dy - startOffsetGlobal.dy) / (endOffsetGlobal.dx - startOffsetGlobal.dx)) + startOffsetGlobal.dy;
 
             stemOffsetEnd = drawC.canvas.globalToLocal(Offset(
-              beamPoint.notePosition.dx + beamPoint.noteAnchor.stemUpSE.dx * lineSpacing,
+              beamPoint.notePosition.dx + beamPoint.noteAnchor.stemUpSE.dx * lS,
               stemOffsetYEnd,
             ));
           } else {
             stemOffsetStart = drawC.canvas.globalToLocal(Offset(
-              beamPoint.notePosition.dx + beamPoint.noteAnchor.stemDownNW.dx * lineSpacing,
+              beamPoint.notePosition.dx + beamPoint.noteAnchor.stemDownNW.dx * lS,
               beamPoint.notePosition.dy +
                   (drawC.staffHeight/2) +
-                  beamPoint.noteAnchor.stemDownNW.dy * lineSpacing,
+                  beamPoint.noteAnchor.stemDownNW.dy * lS,
             ));
 
             final startOffsetGlobal = drawC.canvas.localToGlobal(startOffset);
             final endOffsetGlobal = drawC.canvas.localToGlobal(endOffset);
 
-            double stemOffsetYEnd = ((beamPoint.notePosition.dx + beamPoint.noteAnchor.stemDownNW.dx * lineSpacing) - startOffsetGlobal.dx) *
+            double stemOffsetYEnd = ((beamPoint.notePosition.dx + beamPoint.noteAnchor.stemDownNW.dx * lS) - startOffsetGlobal.dx) *
                 ((endOffsetGlobal.dy - startOffsetGlobal.dy) / (endOffsetGlobal.dx - startOffsetGlobal.dx)) +
                 startOffsetGlobal.dy +
-                ENGRAVING_DEFAULTS.beamThickness*lineSpacing;
+                ENGRAVING_DEFAULTS.beamThickness*lS;
 
             stemOffsetEnd = drawC.canvas.globalToLocal(Offset(
-              beamPoint.notePosition.dx + beamPoint.noteAnchor.stemDownNW.dx * lineSpacing,
+              beamPoint.notePosition.dx + beamPoint.noteAnchor.stemDownNW.dx * lS,
               stemOffsetYEnd,
             ));
           }
@@ -237,14 +237,14 @@ paintPitchNote(DrawingContext drawC, PitchNote note, {bool noAdvance = false}) {
     final accidentalGlyph = accidentalGlyphMap[notePosition.accidental]!;
 
     drawC.canvas.translate(
-        -GLYPH_ADVANCE_WIDTHS[accidentalGlyph]! * lineSpacing -
-            ENGRAVING_DEFAULTS.barlineSeparation * lineSpacing,
+        -GLYPH_ADVANCE_WIDTHS[accidentalGlyph]! * lS -
+            ENGRAVING_DEFAULTS.barlineSeparation * lS,
         0);
 
     paintGlyph(
       drawC,
       accidentalGlyph,
-      yOffset: (lineSpacing / 2) *
+      yOffset: (lS / 2) *
           calculateYOffsetForNote(staff, notePosition.positionalValue),
       noAdvance: true,
     );
@@ -300,7 +300,7 @@ bool shouldPaintAccidental(
 PitchNoteRenderMeasurements calculateNoteWidth(
     DrawingContext drawC, PitchNote note) {
   final notePosition = note.notePosition;
-  final lineSpacing = drawC.lineSpacing;
+  final lineSpacing = drawC.lS;
   final staff = drawC.latestAttributes.clefs!
       .firstWhere((clef) => clef.staffNumber == note.staff)
       .sign;

@@ -1,7 +1,7 @@
 import 'dart:ui';
-import 'package:music_notes_2/notes/notes.dart';
+import 'package:music_notes_2/graphics/notes.dart';
 
-import '../notes/render-functions/staff.dart';
+import '../graphics/render-functions/staff.dart';
 
 class Score {
   Score(this.parts);

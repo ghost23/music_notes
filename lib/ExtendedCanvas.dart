@@ -30,6 +30,13 @@ class XCanvas implements Canvas {
     return global - _currentTranslation;
   }
 
+  void executeGlobally(VoidCallback command) {
+    this.save();
+    this.translate(-_currentTranslation.dx, -_currentTranslation.dy);
+    command();
+    this.restore();
+  }
+
   @override
   void clipPath(Path path, {bool doAntiAlias = true}) {
     _canvas.clipPath(path, doAntiAlias: doAntiAlias);

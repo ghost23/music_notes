@@ -10,7 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:music_notes_2/musicXML/data.dart';
 import 'package:music_notes_2/musicXML/parser.dart';
-import 'package:music_notes_2/notes/music-line.dart';
+import 'package:music_notes_2/graphics/music-line.dart';
 import 'package:xml/xml.dart';
 
 void main() {

@@ -32,6 +32,7 @@ dependencies:
   xml: ^5.4.1
   collection: ^1.17.0
   golden_toolkit: ^0.15.0
+  uuid: ^3.0.7
 
 dev_dependencies:
   flutter_test:

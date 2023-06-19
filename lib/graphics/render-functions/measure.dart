@@ -1,32 +1,28 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:music_notes_2/notes/generated/engraving-defaults.dart';
-import 'package:music_notes_2/notes/generated/glyph-definitions.dart';
-import 'package:music_notes_2/notes/render-functions/glyph.dart';
-import 'package:music_notes_2/notes/render-functions/note.dart';
-
-import '../generated/glyph-advance-widths.dart';
-import '../music-line.dart';
-import '../notes.dart';
-import '../render-functions/staff.dart';
-import '../../musicXML/data.dart';
 import 'package:collection/collection.dart';
 
+import 'DrawingContext.dart';
 import 'common.dart';
+import 'glyph.dart';
+import 'note.dart';
+import 'staff.dart';
+import '../generated/engraving-defaults.dart';
+import '../generated/glyph-definitions.dart';
+import '../generated/glyph-advance-widths.dart';
+import '../graphics-model/measure.dart';
+import '../notes.dart';
+import '../../musicXML/data.dart';
 
 paintMeasure(Measure measure, DrawingContext drawC) {
-  /*final debugPaintLeft = Paint()..color = Colors.red;
-  debugPaintLeft.strokeWidth = 3;
-  final debugPaintRight = Paint()..color = Colors.green;
-  debugPaintRight.strokeWidth = 3;*/
 
   final (grid, positioned) = createGridForMeasure(measure, drawC);
   double leftEnd = 0;
   if(measure.attributes == null) {
     leftEnd = drawC.canvas.getTranslation().dx;
-    //drawC.canvas.drawLine(Offset(0, 0), Offset(0, 5), debugPaintLeft);
   }
-  print('num columns: ${grid.length}');
+
+  MeasureAttributesGeometry? attributesGeom;
 
   grid.forEachIndexed((columnIndex, column) {
     final measurements = column.whereType<PitchNote>().map((element) => calculateNoteWidth(drawC, element));
@@ -37,9 +33,8 @@ paintMeasure(Measure measure, DrawingContext drawC) {
       switch(measureContent.runtimeType) {
         case Barline: break;
         case Attributes: {
-          paintMeasureAttributes(measureContent as Attributes, drawC);
+          attributesGeom = paintMeasureAttributes(measureContent as Attributes, drawC);
           leftEnd = drawC.canvas.getTranslation().dx;
-          //drawC.canvas.drawLine(Offset(0, 0), Offset(0, 5), debugPaintLeft);
           break;
         }
         case Direction: {
@@ -62,12 +57,11 @@ paintMeasure(Measure measure, DrawingContext drawC) {
     // TODO: Spacing between columns, currently static, probably needs to be dynamic
     // to justify measures for the whole line
     if(column.length > 0 && columnIndex < grid.length - 1) {
-      drawC.canvas.translate(drawC.lineSpacing * 1, 0);
+      drawC.canvas.translate(drawC.lS * 1, 0);
     }
   });
 
   final rightEnd = drawC.canvas.getTranslation().dx;
-  //drawC.canvas.drawLine(Offset(0, 5), Offset(0, 10), debugPaintRight);
   final measureWidth = rightEnd - leftEnd;
 
   positioned.forEach((xPosElement) {
@@ -87,6 +81,34 @@ paintMeasure(Measure measure, DrawingContext drawC) {
     }
     drawC.canvas.restore();
   });
+
+  final xyTranslation = drawC.canvas.getTranslation();
+  final List<Rect> stavesBounds = [];
+  for(var i = 0; i < drawC.latestAttributes.staves!; i++) {
+      stavesBounds.add(
+          Rect.fromLTRB(
+              leftEnd,
+              xyTranslation.dy + (drawC.staffHeight*i) + (drawC.staffsSpacing*i),
+              rightEnd,
+              xyTranslation.dy + drawC.staffHeight*(i+1) + drawC.staffsSpacing*i
+          )
+      );
+  }
+  final measureRectLT = Offset(leftEnd, xyTranslation.dy);
+  final measureRectRB = Offset(
+      rightEnd,
+      xyTranslation.dy
+          + (drawC.staffHeight*drawC.latestAttributes.staves!)
+          + (drawC.staffsSpacing*(drawC.latestAttributes.staves! - 1))
+  );
+
+  final measureRect = Rect.fromPoints(measureRectLT, measureRectRB);
+  final measureGeom = MeasureGeometry(measureRect, stavesBounds);
+  measureGeom.attributesGeometry = attributesGeom;
+  if(attributesGeom != null) {
+    drawC.debugDrawBB(attributesGeom!.boundingBox);
+  }
+  drawC.measuresPerPart[drawC.currentPart].add(measureGeom);
 }
 
 Rect calculateColumnAlignment(DrawingContext drawC, Iterable<PitchNoteRenderMeasurements> measurements) {
@@ -103,7 +125,9 @@ Rect calculateColumnAlignment(DrawingContext drawC, Iterable<PitchNoteRenderMeas
   final columnsOnCurrentTime = columnsOnFourFour * currentTimeFactor;
   if(columnsOnCurrentTime % 1 != 0) {
     // Not a whole number. Means, the divisions number does not work for the Time. This is an error!
-    throw new FormatException('Found divisions of ${drawC.latestAttributes.divisions} on a Time of ${drawC.latestAttributes.time!.beats}/${drawC.latestAttributes.time!.beatType}, which does not work.');
+    throw new FormatException(
+        'Found divisions of ${drawC.latestAttributes.divisions} on a Time of ${drawC.latestAttributes.time!.beats}/${drawC.latestAttributes.time!.beatType}, which does not work.'
+    );
   }
   final measureHasAttributes = measure.attributes != null;
   final List<List<MeasureContent>> grid = List.generate(columnsOnCurrentTime.toInt()+(measureHasAttributes?1:0), (i) => []);
@@ -113,7 +137,9 @@ Rect calculateColumnAlignment(DrawingContext drawC, Iterable<PitchNoteRenderMeas
   List<MeasureContent> currentColumn = grid[currentColumnPointer];
   measure.contents.forEachIndexed((index, element) {
     if(currentColumnPointer >= grid.length && element.runtimeType != Backup && element.runtimeType != Barline) {
-      throw new FormatException('currentColumnPointer can only point beyond end of grid length, if next element is Backup or Barline. But was: ${element.runtimeType.toString()}');
+      throw new FormatException(
+          'currentColumnPointer can only point beyond end of grid length, if next element is Backup or Barline. But was: ${element.runtimeType.toString()}'
+      );
     } else if(currentColumnPointer < grid.length) {
       currentColumn = grid[currentColumnPointer];
     }
@@ -134,8 +160,7 @@ Rect calculateColumnAlignment(DrawingContext drawC, Iterable<PitchNoteRenderMeas
           if(index < measure.contents.length - 1) {
             final nextElement = measure.contents.elementAt(index + 1);
             if (nextElement is PitchNote) {
-              element.beams
-                  .toList(); // This makes the lazy xml parser actually traverse all beams
+              element.beams.toList(); // This makes the lazy xml parser actually traverse all beams
               if (!element.chord) {
                 if (nextElement.chord) {
                   // next element is chord note, so we save the current
@@ -191,53 +216,78 @@ Rect calculateColumnAlignment(DrawingContext drawC, Iterable<PitchNoteRenderMeas
 
 paintMeasureAttributes(Attributes attributes, DrawingContext drawC) {
   final fifths = attributes.key?.fifths;
-  final staves = attributes.staves;
-  final clefs = attributes.clefs;
-  final lineSpacing = drawC.lineSpacing;
+  final Attributes(:staves, :clefs) = attributes;
+  final lS = drawC.lS;
 
   if(staves != null && clefs != null) {
 
+    final sortedClefs = clefs.sorted((a, b) => a.staffNumber - b.staffNumber);
+
+    Rect? boundingBox;
+
     if(fifths != null) {
-      clefs
-          .sorted((a, b) => a.staffNumber - b.staffNumber)
-          .forEachIndexed((index, clef) {
-        paintGlyph(
+      Rect? clefBB;
+
+      sortedClefs.forEachIndexed((index, clef) {
+        final glyphBB = paintGlyph(
             drawC,
             clefToGlyphMap[clef.sign]!,
             yOffset: staffYPos(drawC, clef.staffNumber)
-                + (lineSpacing*clefToPositionOffsetMap[clef.sign]!),
+                + (lS*clefToPositionOffsetMap[clef.sign]!),
             noAdvance: index < (clefs.length-1)
         );
+        if(clefBB == null) clefBB = glyphBB.boundingBox;
+        else clefBB = clefBB!.expandToInclude(glyphBB.boundingBox);
       });
-      drawC.canvas.translate(drawC.lineSpacing * 1, 0);
+      boundingBox = clefBB;
+      drawC.canvas.translate(drawC.lS * 1, 0);
 
-      bool didDrawSomething = false;
-      clefs
-          .sorted((a, b) => a.staffNumber - b.staffNumber)
-          .forEachIndexed((index, clef) {
+      Rect? accidentalBB;
+      sortedClefs.forEachIndexed((index, clef) {
         drawC.canvas.translate(0, staffYPos(drawC, clef.staffNumber));
-        didDrawSomething |= paintAccidentalsForTone(drawC, clef.sign, fifths, noAdvance: index < (clefs.length-1));
+        final glyphBB = paintAccidentalsForTone(drawC, clef.sign, fifths, noAdvance: index < (clefs.length-1));
         drawC.canvas.translate(0, -staffYPos(drawC, clef.staffNumber));
+        if(glyphBB != null) {
+          if (accidentalBB == null)
+            accidentalBB = glyphBB;
+          else
+            accidentalBB = accidentalBB!.expandToInclude(glyphBB);
+        }
       });
-      if(didDrawSomething) drawC.canvas.translate(drawC.lineSpacing * 1, 0);
+      if(accidentalBB != null && !accidentalBB!.isEmpty) {
+        boundingBox = boundingBox!.expandToInclude(accidentalBB!);
+        drawC.canvas.translate(drawC.lS * 1, 0);
+      }
     }
 
     if(attributes.time != null) {
-      clefs
-          .sorted((a, b) => a.staffNumber - b.staffNumber)
-          .forEachIndexed((index, clef) {
+      Rect? timesBB;
+      sortedClefs.forEachIndexed((index, clef) {
         drawC.canvas.translate(0, staffYPos(drawC, clef.staffNumber));
-        paintTimeSignature(drawC, attributes, noAdvance: index < (clefs.length-1));
+        final glyphBB = paintTimeSignature(drawC, attributes, noAdvance: index < (clefs.length-1));
         drawC.canvas.translate(0, -staffYPos(drawC, clef.staffNumber));
+        if(timesBB == null) timesBB = glyphBB;
+        else timesBB = timesBB!.expandToInclude(glyphBB);
       });
-      drawC.canvas.translate(drawC.lineSpacing * 1, 0);
+
+      if(timesBB != null) {
+        boundingBox = boundingBox!.expandToInclude(timesBB!);
+      }
+      drawC.canvas.translate(drawC.lS * 1, 0);
+    }
+
+    if(boundingBox != null) {
+      final measureAttrGeom = MeasureAttributesGeometry(boundingBox);
+      return measureAttrGeom;
+    } else {
+      return null;
     }
   }
 }
 
 calculateMeasureAttributesWidth(Attributes attributes, DrawingContext drawC) {
   return (attributes.key != null ? calculateAccidentalsForToneWidth(drawC, attributes.key!.fifths) : 0)
-      + (attributes.key != null && attributes.time != null ? drawC.lineSpacing * ENGRAVING_DEFAULTS.barlineSeparation * 2 : 0)
+      + (attributes.key != null && attributes.time != null ? drawC.lS * ENGRAVING_DEFAULTS.barlineSeparation * 2 : 0)
       + (attributes.time != null ? calculateTimeSignatureWidth(drawC, attributes) : 0);
 }
 

@@ -1,8 +1,11 @@
 import 'dart:ui';
-import 'package:music_notes_2/notes/render-functions/staff.dart';
+import 'package:music_notes_2/graphics/render-functions/staff.dart';
 import 'package:xml/xml.dart';
 import 'dart:io';
 import 'data.dart';
+import 'package:uuid/uuid.dart';
+
+final uuid = Uuid();
 
 XmlDocument loadMusicXMLFile(String filePath) {
   final File file = File(filePath);

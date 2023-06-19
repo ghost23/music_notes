@@ -1,7 +1,6 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:music_notes_2/notes/generated/glyph-range-definitions.dart';
-import '../music-line.dart';
+import 'package:music_notes_2/graphics/generated/glyph-range-definitions.dart';
+import 'DrawingContext.dart';
 import 'glyph.dart';
 import 'note.dart';
 import '../notes.dart';
@@ -13,7 +12,7 @@ import '../../musicXML/data.dart';
 /// Advances to the end of the lines
 paintStaffLines(DrawingContext drawC, bool noAdvance) {
 
-  final lS = drawC.lineSpacing;
+  final lS = drawC.lS;
   final paint = Paint()..color = Colors.black;
   paint.strokeWidth = lS * ENGRAVING_DEFAULTS.staffLineThickness;
 
@@ -37,7 +36,7 @@ enum BarLineTypes {
 /// Does translate to after its width
 paintBarLine(DrawingContext drawC, Barline barline, bool noAdvance) {
 
-  final lS = drawC.lineSpacing;
+  final lS = drawC.lS;
   final thinBarlineWidh = lS*ENGRAVING_DEFAULTS.thinBarlineThickness;
   final paint = Paint()..color = Colors.black;
   final staves = drawC.latestAttributes.staves!;
@@ -92,7 +91,7 @@ paintBarLine(DrawingContext drawC, Barline barline, bool noAdvance) {
 }
 
 calculateBarlineWidth(DrawingContext drawC, Barline barline) {
-  final lS = drawC.lineSpacing;
+  final lS = drawC.lS;
   final thinBarlineWidh = lS*ENGRAVING_DEFAULTS.thinBarlineThickness;
   double width = 0;
 
@@ -116,23 +115,24 @@ calculateBarlineWidth(DrawingContext drawC, Barline barline) {
 }
 
 /// Returns true if something was actually drawn
-bool paintAccidentalsForTone(DrawingContext drawC, Clefs staff, Fifths tone, {bool noAdvance = false}) {
+Rect? paintAccidentalsForTone(DrawingContext drawC, Clefs staff, Fifths tone, {bool noAdvance = false}) {
   if(noAdvance) {
     drawC.canvas.save();
   }
 
-  bool didDrawSomething = false;
+  Rect? boundingBox;
 
-  double lineSpacing = drawC.lineSpacing;
+  double lineSpacing = drawC.lS;
   final accidentals = staff == Clefs.F ? mainToneAccidentalsMapForFClef[tone]! : mainToneAccidentalsMapForGClef[tone]!;
   accidentals.forEach((note) {
     if(note.accidental != Accidentals.none) {
-      paintGlyph(
+      final glyphBB = paintGlyph(
         drawC,
         accidentalGlyphMap[note.accidental]!,
         yOffset: (lineSpacing/2) * calculateYOffsetForNote(staff, note.positionalValue),
       );
-      didDrawSomething = true;
+      if(boundingBox == null) boundingBox = glyphBB.boundingBox;
+      else boundingBox = boundingBox!.expandToInclude(glyphBB.boundingBox);
     }
   });
 
@@ -140,7 +140,7 @@ bool paintAccidentalsForTone(DrawingContext drawC, Clefs staff, Fifths tone, {bo
     drawC.canvas.restore();
   }
 
-  return didDrawSomething;
+  return boundingBox;
 }
 
 double calculateAccidentalsForToneWidth(DrawingContext drawC, Fifths tone) {
@@ -154,9 +154,22 @@ double calculateAccidentalsForToneWidth(DrawingContext drawC, Fifths tone) {
   return width;
 }
 
-paintTimeSignature(DrawingContext drawC, Attributes attributes, {bool noAdvance = false}) {
-  paintGlyph(drawC, GLYPHRANGE_MAP[GlyphRange.timeSignatures]!.glyphs[attributes.time!.beats], yOffset: - drawC.lineSpacing, noAdvance: true);
-  paintGlyph(drawC, GLYPHRANGE_MAP[GlyphRange.timeSignatures]!.glyphs[attributes.time!.beatType], yOffset: drawC.lineSpacing, noAdvance: noAdvance);
+Rect paintTimeSignature(DrawingContext drawC, Attributes attributes, {bool noAdvance = false}) {
+  Rect timeBB = paintGlyph(
+      drawC,
+      GLYPHRANGE_MAP[GlyphRange.timeSignatures]!.glyphs[attributes.time!.beats],
+      yOffset: - drawC.lS,
+      noAdvance: true
+  ).boundingBox;
+  timeBB = timeBB.expandToInclude(
+      paintGlyph(
+          drawC,
+          GLYPHRANGE_MAP[GlyphRange.timeSignatures]!.glyphs[attributes.time!.beatType],
+          yOffset: drawC.lS,
+          noAdvance: noAdvance
+      ).boundingBox
+  );
+  return timeBB;
 }
 
 calculateTimeSignatureWidth(DrawingContext drawC, Attributes attributes) {
