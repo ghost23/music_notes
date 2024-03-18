@@ -1,11 +1,13 @@
-import 'dart:ui';
-import 'package:music_notes_2/graphics/render-functions/staff.dart';
-import 'package:xml/xml.dart';
 import 'dart:io';
-import 'data.dart';
-import 'package:uuid/uuid.dart';
+import 'dart:ui';
 
-final uuid = Uuid();
+import 'package:music_notes_2/graphics/render_functions/staff.dart';
+import 'package:uuid/uuid.dart';
+import 'package:xml/xml.dart';
+
+import 'data.dart';
+
+const uuid = Uuid();
 
 XmlDocument loadMusicXMLFile(String filePath) {
   final File file = File(filePath);
@@ -21,70 +23,67 @@ Part parsePartXML(XmlElement partXML) {
   final measures = partXML.findAllElements('measure');
   final parsedMeasures = measures.map(parseMeasureXML).toList();
   if (parsedMeasures.isNotEmpty &&
-      (parsedMeasures.first.attributes == null ||
-          !parsedMeasures.first.attributes!.isValidForFirstMeasure)) {
-    throw new FormatException(
-        'The first measure of a part must include Attributes');
+      (parsedMeasures.first.attributes == null || !parsedMeasures.first.attributes!.isValidForFirstMeasure)) {
+    throw const FormatException('The first measure of a part must include Attributes');
   }
   return Part(parsedMeasures);
 }
 
 Measure parseMeasureXML(XmlElement measureXML) {
   final childElements = measureXML.children.whereType<XmlElement>();
-  final List<MeasureContent> contents = childElements.map((child) {
-    switch (child.name.qualified) {
-      case 'attributes':
-        {
-          return parseAttributesXML(child);
+  final List<MeasureContent> contents = childElements
+      .map((child) {
+        switch (child.name.qualified) {
+          case 'attributes':
+            {
+              return parseAttributesXML(child);
+            }
+          case 'barline':
+            {
+              return parseBarlineXML(child);
+            }
+          case 'direction':
+            {
+              return parseDirectionXML(child);
+            }
+          case 'note':
+            {
+              return parseNoteXML(child);
+            }
+          case 'backup':
+            {
+              return parseBackupXML(child);
+            }
+          case 'forward':
+            {
+              return parseForwardXML(child);
+            }
+          default:
+            {
+              return null;
+            }
         }
-      case 'barline':
-        {
-          return parseBarlineXML(child);
-        }
-      case 'direction':
-        {
-          return parseDirectionXML(child);
-        }
-      case 'note':
-        {
-          return parseNoteXML(child);
-        }
-      case 'backup':
-        {
-          return parseBackupXML(child);
-        }
-      case 'forward':
-        {
-          return parseForwardXML(child);
-        }
-      default:
-        {
-          return null;
-        }
-    }
-  }).whereType<MeasureContent>().toList();
+      })
+      .whereType<MeasureContent>()
+      .toList();
 
   return Measure(contents);
 }
 
 Attributes? parseAttributesXML(XmlElement attributesXML) {
   final divisionsElmt = attributesXML.getElement('divisions');
-  final int? divisions =
-      divisionsElmt != null ? int.parse(divisionsElmt.innerText) : null;
+  final int? divisions = divisionsElmt != null ? int.parse(divisionsElmt.innerText) : null;
 
   final keyElmt = attributesXML.getElement('key');
   MusicalKey? key;
   if (keyElmt != null) {
     final fifthElmt = keyElmt.getElement('fifths');
-    final int? fifth =
-        fifthElmt != null ? int.parse(fifthElmt.innerText) : null;
+    final int? fifth = fifthElmt != null ? int.parse(fifthElmt.innerText) : null;
 
     final modeElmt = keyElmt.getElement('mode');
     final String? modeString = modeElmt?.innerText;
-    final KeyMode? mode = modeString != null
-        ? KeyMode.values
-            .firstWhere((e) => e.toString() == 'KeyMode.$modeString')
-        : null;
+    final KeyMode? mode =
+        modeString != null ? KeyMode.values.firstWhere((e) => e.toString() == 'KeyMode.$modeString') : null;
 
     if (fifth != null) {
       key = MusicalKey(fifth, mode);
@@ -92,53 +91,48 @@ Attributes? parseAttributesXML(XmlElement attributesXML) {
   }
 
   final stavesElmt = attributesXML.getElement('staves');
-  final int? staves =
-      stavesElmt != null ? int.parse(stavesElmt.innerText) : null;
+  final int? staves = stavesElmt != null ? int.parse(stavesElmt.innerText) : null;
 
   final clefElmts = attributesXML.findAllElements('clef');
   List<Clef>? clefs;
   if (clefElmts.isNotEmpty) {
-    clefs = clefElmts.map((clefElmt) {
-      final signElmt = clefElmt.getElement('sign');
-      final String? signString = signElmt?.innerText;
-      final Clefs? sign = signString != null
-          ? Clefs.values.firstWhere((e) => e.toString() == 'Clefs.$signString')
-          : null;
+    clefs = clefElmts
+        .map((clefElmt) {
+          final signElmt = clefElmt.getElement('sign');
+          final String? signString = signElmt?.innerText;
+          final Clefs? sign =
+              signString != null ? Clefs.values.firstWhere((e) => e.toString() == 'Clefs.$signString') : null;
 
-      final int number = int.parse(clefElmt.getAttribute('number') ?? '1');
+          final int number = int.parse(clefElmt.getAttribute('number') ?? '1');
 
-      if (sign != null) {
-        return Clef(number, sign);
-      } else
-        return null;
-    }).whereType<Clef>().toList();
+          if (sign != null) {
+            return Clef(number, sign);
+          } else {
+            return null;
+          }
+        })
+        .whereType<Clef>()
+        .toList();
   }
 
   if ((staves ?? 0) != (clefs != null ? clefs.length : 0)) {
-    throw new FormatException(
-        'The number of staves has to meet the number of clefs');
+    throw const FormatException('The number of staves has to meet the number of clefs');
   }
 
   final timeElmt = attributesXML.getElement('time');
   Time? time;
   if (timeElmt != null) {
     final beatsElmt = timeElmt.getElement('beats');
-    final int? beats =
-        beatsElmt != null ? int.parse(beatsElmt.innerText) : null;
+    final int? beats = beatsElmt != null ? int.parse(beatsElmt.innerText) : null;
 
     final beatTypeElmt = timeElmt.getElement('beat-type');
-    final int? beatType =
-        beatTypeElmt != null ? int.parse(beatTypeElmt.innerText) : null;
+    final int? beatType = beatTypeElmt != null ? int.parse(beatTypeElmt.innerText) : null;
 
     if (beats != null && beatType != null) {
       time = Time(beats, beatType);
     }
   }
-  if (divisions == null &&
-      key == null &&
-      staves == null &&
-      (clefs == null || clefs.length <= 0) &&
-      time == null) {
+  if (divisions == null && key == null && staves == null && (clefs == null || clefs.isEmpty) && time == null) {
     return null;
   } else {
     return Attributes(divisions, key, staves, clefs, time);
@@ -189,8 +183,7 @@ Direction? parseDirectionXML(XmlElement directionXML) {
       break;
     case null:
       {
-        throw new AssertionError(
-            'direction-type element missing in direction.');
+        throw AssertionError('direction-type element missing in direction.');
       }
     default:
       {
@@ -199,8 +192,7 @@ Direction? parseDirectionXML(XmlElement directionXML) {
   }
   final String? placementString = directionXML.getAttribute('placement');
   final PlacementValue? placement = placementString != null
-      ? PlacementValue.values
-          .firstWhere((e) => e.toString() == 'PlacementValue.$placementString')
+      ? PlacementValue.values.firstWhere((e) => e.toString() == 'PlacementValue.$placementString')
       : null;
 
   final staffElmt = directionXML.getElement('staff');
@@ -217,10 +209,8 @@ OctaveShift? parseOctaveShiftXML(XmlElement octaveShiftXML) {
   final int number = int.parse(octaveShiftXML.getAttribute('number') ?? '1');
 
   final String? typeString = octaveShiftXML.getAttribute('type');
-  final UpDownStopCont? type = typeString != null
-      ? UpDownStopCont.values
-          .firstWhere((e) => e.toString() == 'UpDownStopCont.$typeString')
-      : null;
+  final UpDownStopCont? type =
+      typeString != null ? UpDownStopCont.values.firstWhere((e) => e.toString() == 'UpDownStopCont.$typeString') : null;
 
   final sizeAttr = octaveShiftXML.getAttribute('size');
   final int? size = sizeAttr != null ? int.parse(sizeAttr) : null;
@@ -236,10 +226,8 @@ Wedge? parseWedgeXML(XmlElement wedgeXML) {
   final int number = int.parse(wedgeXML.getAttribute('number') ?? '1');
 
   final String? typeString = wedgeXML.getAttribute('type');
-  final WedgeType? type = typeString != null
-      ? WedgeType.values
-          .firstWhere((e) => e.toString() == 'WedgeType.$typeString')
-      : null;
+  final WedgeType? type =
+      typeString != null ? WedgeType.values.firstWhere((e) => e.toString() == 'WedgeType.$typeString') : null;
 
   if (type != null) {
     return Wedge(number, type);
@@ -254,14 +242,11 @@ Words? parseWordsXML(XmlElement wordsXML) {
   final fontFamily = wordsXML.getAttribute('font-family');
 
   final fontSizeString = wordsXML.getAttribute('font-size');
-  final double? fontSize =
-      fontSizeString != null ? double.parse(fontSizeString) : null;
+  final double? fontSize = fontSizeString != null ? double.parse(fontSizeString) : null;
 
   final String? fontStyleString = wordsXML.getAttribute('font-styles');
-  final FontStyle? fontStyle = fontStyleString != null
-      ? FontStyle.values
-          .firstWhere((e) => e.toString() == 'FontStyle.$fontStyleString')
-      : null;
+  final FontStyle? fontStyle =
+      fontStyleString != null ? FontStyle.values.firstWhere((e) => e.toString() == 'FontStyle.$fontStyleString') : null;
 
   final String? fontWeightString = wordsXML.getAttribute('font-weight');
   final FontWeight? fontWeight;
@@ -276,12 +261,8 @@ Words? parseWordsXML(XmlElement wordsXML) {
       fontWeight = null;
   }
 
-  if (content.length > 0) {
-    return Words(content,
-        fontFamily: fontFamily,
-        fontSize: fontSize,
-        fontStyle: fontStyle,
-        fontWeight: fontWeight);
+  if (content.isNotEmpty) {
+    return Words(content, fontFamily: fontFamily, fontSize: fontSize, fontStyle: fontStyle, fontWeight: fontWeight);
   } else {
     return null;
   }
@@ -290,8 +271,7 @@ Words? parseWordsXML(XmlElement wordsXML) {
 PlacementValue? parsePlacementAttr(XmlElement someXML) {
   final String? placementString = someXML.getAttribute('placement');
   return placementString != null
-      ? PlacementValue.values
-          .firstWhere((e) => e.toString() == 'PlacementValue.$placementString')
+      ? PlacementValue.values.firstWhere((e) => e.toString() == 'PlacementValue.$placementString')
       : null;
 }
 
@@ -302,8 +282,7 @@ Note? parseNoteXML(XmlElement noteXML) {
   final rest = noteXML.getElement('rest') != null;
 
   final durationElmt = noteXML.getElement('duration');
-  final int? duration =
-      durationElmt != null ? int.parse(durationElmt.innerText) : null;
+  final int? duration = durationElmt != null ? int.parse(durationElmt.innerText) : null;
 
   final voiceElmt = noteXML.getElement('voice');
   final int voice = voiceElmt != null ? int.parse(voiceElmt.innerText) : 1;
@@ -334,10 +313,8 @@ Note? parseNoteXML(XmlElement noteXML) {
   }
 
   final String? stemString = noteXML.getElement('stem')?.innerText;
-  final StemValue? stem = stemString != null
-      ? StemValue.values
-          .firstWhere((e) => e.toString() == 'StemValue.$stemString')
-      : null;
+  final StemValue? stem =
+      stemString != null ? StemValue.values.firstWhere((e) => e.toString() == 'StemValue.$stemString') : null;
 
   final staffElmt = noteXML.getElement('staff');
   final int? staff = staffElmt != null ? int.parse(staffElmt.innerText) : null;
@@ -354,14 +331,8 @@ Note? parseNoteXML(XmlElement noteXML) {
 
   if (rest && duration != null && staff != null) {
     return RestNote(duration, voice, staff, notations);
-  } else if (pitch != null &&
-      duration != null &&
-      type != null &&
-      stem != null &&
-      staff != null) {
-    return PitchNote(
-        duration, voice, staff, notations, pitch, type, stem, beams,
-        dots: dots, chord: chord);
+  } else if (pitch != null && duration != null && type != null && stem != null && staff != null) {
+    return PitchNote(duration, voice, staff, notations, pitch, type, stem, beams, dots: dots, chord: chord);
   } else {
     return null;
   }
@@ -370,14 +341,11 @@ Note? parseNoteXML(XmlElement noteXML) {
 Pitch? parsePitchXML(XmlElement pitchXML) {
   final stepElmt = pitchXML.getElement('step');
   final String? stepString = stepElmt?.innerText;
-  final BaseTones? step = stepString != null
-      ? BaseTones.values
-          .firstWhere((e) => e.toString() == 'BaseTones.$stepString')
-      : null;
+  final BaseTones? step =
+      stepString != null ? BaseTones.values.firstWhere((e) => e.toString() == 'BaseTones.$stepString') : null;
 
   final octaveElmt = pitchXML.getElement('octave');
-  final int? octave =
-      octaveElmt != null ? int.parse(octaveElmt.innerText) : null;
+  final int? octave = octaveElmt != null ? int.parse(octaveElmt.innerText) : null;
 
   final alterElmt = pitchXML.getElement('alter');
   final int? alter = alterElmt != null ? int.parse(alterElmt.innerText) : null;
@@ -393,14 +361,14 @@ int currentBeamId = 0;
 int beamStructsOpen = 0;
 
 Beam? parseBeamXML(XmlElement beamXML) {
-  final String? valueString = beamXML.innerText;
-  final BeamValue? value = valueString != null
-      ? BeamValue.values
-          .firstWhere((e) => e.toString() == 'BeamValue.continued' ? valueString == 'continue' : e.toString() == 'BeamValue.$valueString')
+  final String valueString = beamXML.innerText;
+  final BeamValue? value = valueString.isNotEmpty
+      ? BeamValue.values.firstWhere((e) =>
+          e.toString() == 'BeamValue.continued' ? valueString == 'continue' : e.toString() == 'BeamValue.$valueString')
       : null;
-  if(value == BeamValue.begin) {
+  if (value == BeamValue.begin) {
     beamStructsOpen++;
-  } else if(value == BeamValue.end) {
+  } else if (value == BeamValue.end) {
     beamStructsOpen--;
   }
 
@@ -417,8 +385,7 @@ Iterable<Notation> parseNotationXML(XmlElement notationXML) {
   final List<Notation> result = [];
 
   final fingeringElmt = notationXML.findAllElements('fingering');
-  final String? fingering =
-      fingeringElmt.length >= 1 ? fingeringElmt.first.innerText : null;
+  final String? fingering = fingeringElmt.isNotEmpty ? fingeringElmt.first.innerText : null;
   if (fingering != null) {
     result.add(Fingering(fingering, parsePlacementAttr(fingeringElmt.first)));
   }
@@ -436,23 +403,21 @@ Iterable<Notation> parseNotationXML(XmlElement notationXML) {
   }
 
   final staccatoElmt = notationXML.findAllElements('staccato');
-  final bool staccato = staccatoElmt.length >= 1;
+  final bool staccato = staccatoElmt.isNotEmpty;
   if (staccato) {
     result.add(Staccato(parsePlacementAttr(staccatoElmt.first)));
   }
 
   final accentElmt = notationXML.findAllElements('accent');
-  final bool accent = accentElmt.length >= 1;
+  final bool accent = accentElmt.isNotEmpty;
   if (accent) {
     result.add(Accent(parsePlacementAttr(accentElmt.first)));
   }
 
   final dynamicsElmt = notationXML.getElement('dynamics');
   final String? dynamicString = dynamicsElmt?.firstElementChild?.name.qualified;
-  final DynamicType? dynamic = dynamicString != null
-      ? DynamicType.values
-          .firstWhere((e) => e.toString() == 'DynamicType.$dynamicString')
-      : null;
+  final DynamicType? dynamic =
+      dynamicString != null ? DynamicType.values.firstWhere((e) => e.toString() == 'DynamicType.$dynamicString') : null;
   if (dynamicsElmt != null && dynamic != null) {
     result.add(Dynamics(dynamic, parsePlacementAttr(dynamicsElmt)));
   }
@@ -464,10 +429,8 @@ Tied? parseTiedXML(XmlElement tiedXML) {
   final PlacementValue? placement = parsePlacementAttr(tiedXML);
 
   final String? typeString = tiedXML.getAttribute('type');
-  final StCtStpValue? type = typeString != null
-      ? StCtStpValue.values
-          .firstWhere((e) => e.toString() == 'StCtStpValue.$typeString')
-      : null;
+  final StCtStpValue? type =
+      typeString != null ? StCtStpValue.values.firstWhere((e) => e.toString() == 'StCtStpValue.$typeString') : null;
 
   final int number = int.parse(tiedXML.getAttribute('number') ?? '1');
 
@@ -482,10 +445,8 @@ Slur? parseSlurXML(XmlElement slurXML) {
   final PlacementValue? placement = parsePlacementAttr(slurXML);
 
   final String? typeString = slurXML.getAttribute('type');
-  final StCtStpValue? type = typeString != null
-      ? StCtStpValue.values
-          .firstWhere((e) => e.toString() == 'StCtStpValue.$typeString')
-      : null;
+  final StCtStpValue? type =
+      typeString != null ? StCtStpValue.values.firstWhere((e) => e.toString() == 'StCtStpValue.$typeString') : null;
 
   final int number = int.parse(slurXML.getAttribute('number') ?? '1');
 
@@ -498,14 +459,12 @@ Slur? parseSlurXML(XmlElement slurXML) {
 
 Backup? parseBackupXML(XmlElement backupXML) {
   final durationElmt = backupXML.getElement('duration');
-  final int? duration =
-      durationElmt != null ? int.parse(durationElmt.innerText) : null;
+  final int? duration = durationElmt != null ? int.parse(durationElmt.innerText) : null;
   return duration != null ? Backup(duration) : null;
 }
 
 Forward? parseForwardXML(XmlElement forwardXML) {
   final durationElmt = forwardXML.getElement('duration');
-  final int? duration =
-      durationElmt != null ? int.parse(durationElmt.innerText) : null;
+  final int? duration = durationElmt != null ? int.parse(durationElmt.innerText) : null;
   return duration != null ? Forward(duration) : null;
 }

@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:xml/xml.dart';
+
+import 'graphics/music_line.dart';
 import 'musicXML/data.dart';
 import 'musicXML/parser.dart';
-import 'graphics/music-line.dart';
 
 Future<Score> loadXML() async {
   final rawFile = await rootBundle.loadString('hanon-no1-stripped.musicxml');
@@ -11,13 +12,15 @@ Future<Score> loadXML() async {
   return result;
 }
 
-const double STAFF_HEIGHT = 36;
+const double staffHeight = 36;
 
 void main() {
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -26,55 +29,51 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: MyHomePage(),
+      home: const MyHomePage(),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  MyHomePage({Key? key}) : super(key: key);
+  const MyHomePage({super.key});
 
   @override
-  _MyHomePageState createState() => _MyHomePageState();
+  MyHomePageState createState() => MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-
+class MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
-
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
       body: Center(
         child: Container(
-          alignment: Alignment.center,
-          width: size.width - 40,
-          height: size.height - 40,
-          child: FutureBuilder<Score>(
-              future: loadXML(),
-              builder: (context, snapshot) {
-                if(snapshot.hasData) {
-                  return MusicLine(
-                    options: MusicLineOptions(
-                      snapshot.data!,
-                      STAFF_HEIGHT,
-                      1,
-                    ),
-                  );
-                } else if(snapshot.hasError) {
-                  return Text('Oh, this failed!\n${snapshot.error}');
-                } else {
-                  return  SizedBox(
-                    child: CircularProgressIndicator(),
-                    width: 60,
-                    height: 60,
-                  );
-                }
-              }
-          )
-        ),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+            alignment: Alignment.center,
+            width: size.width - 40,
+            height: size.height - 40,
+            child: FutureBuilder<Score>(
+                future: loadXML(),
+                builder: (context, snapshot) {
+                  if (snapshot.hasData) {
+                    return MusicLine(
+                      options: MusicLineOptions(
+                        snapshot.data!,
+                        staffHeight,
+                        1,
+                      ),
+                    );
+                  } else if (snapshot.hasError) {
+                    return Text('Oh, this failed!\n${snapshot.error}');
+                  } else {
+                    return const SizedBox(
+                      width: 60,
+                      height: 60,
+                      child: CircularProgressIndicator(),
+                    );
+                  }
+                })),
+      ),
     );
   }
 }

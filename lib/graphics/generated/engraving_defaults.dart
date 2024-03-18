@@ -1,5 +1,4 @@
 class EngravingDefaults {
-
   const EngravingDefaults();
 
   final List<String> textFontFamily = const ["Academico", "Century Schoolbook", "Edwin", "serif"];
@@ -34,4 +33,4 @@ class EngravingDefaults {
   final double hBarThickness = 1;
 }
 
-const ENGRAVING_DEFAULTS = EngravingDefaults();
+const engravingDefaults = EngravingDefaults();

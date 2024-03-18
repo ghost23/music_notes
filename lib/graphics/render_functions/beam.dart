@@ -1,9 +1,10 @@
-import 'package:flutter/material.dart';
 import 'package:collection/collection.dart';
-import 'package:music_notes_2/graphics/generated/engraving-defaults.dart';
+import 'package:flutter/material.dart';
+import 'package:music_notes_2/graphics/generated/engraving_defaults.dart';
+
 import '../../musicXML/data.dart';
-import '../generated/glyph-anchors.dart';
-import 'DrawingContext.dart';
+import '../generated/glyph_anchors.dart';
+import 'drawing_context.dart';
 
 class BeamPoint {
   BeamPoint(this.beam, this.notePosition, this.noteAnchor, this.drawAbove);
@@ -18,8 +19,8 @@ List<int> getOpenBeams(Map<int, List<BeamPoint>> beamPoints) {
   final List<int> beginList = [];
   final List<int> endOrHookList = [];
 
-  for(final beamPointsForNumber in beamPoints.values) {
-    for(final elmt in beamPointsForNumber) {
+  for (final beamPointsForNumber in beamPoints.values) {
+    for (final elmt in beamPointsForNumber) {
       switch (elmt.beam.value) {
         case BeamValue.backward:
         case BeamValue.forward:
@@ -47,8 +48,8 @@ paintBeam(DrawingContext drawC, Offset start, Offset end) {
   final Path path = Path();
   path.moveTo(start.dx, start.dy);
   path.lineTo(end.dx, end.dy);
-  path.lineTo(end.dx, end.dy + drawC.lS*ENGRAVING_DEFAULTS.beamThickness);
-  path.lineTo(start.dx, start.dy + drawC.lS*ENGRAVING_DEFAULTS.beamThickness);
+  path.lineTo(end.dx, end.dy + drawC.lS * engravingDefaults.beamThickness);
+  path.lineTo(start.dx, start.dy + drawC.lS * engravingDefaults.beamThickness);
   path.close();
 
   drawC.canvas.drawPath(path, paint);
@@ -57,7 +58,7 @@ paintBeam(DrawingContext drawC, Offset start, Offset end) {
 paintStem(DrawingContext drawC, Offset start, Offset end) {
   final Paint paint = Paint();
   paint.color = Colors.black;
-  paint.strokeWidth = ENGRAVING_DEFAULTS.stemThickness*drawC.lS;
+  paint.strokeWidth = engravingDefaults.stemThickness * drawC.lS;
 
   drawC.canvas.drawLine(start, end, paint);
 }

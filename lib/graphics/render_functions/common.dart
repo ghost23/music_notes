@@ -1,6 +1,6 @@
 import 'dart:ui';
 
-import 'DrawingContext.dart';
+import 'drawing_context.dart';
 
 double getLineSpacing(double fontSize) => fontSize / 4;
 

@@ -19,7 +19,7 @@ ${Object.keys(glyphNames).map(convertGlyphToDartEnumEntry).join('')}
     }
 
     const glyphNamesDart =
-`const GLYPH_FONTCODE_MAP = <Glyph, String>{
+`const glyphFontCodeMap = <Glyph, String>{
 ${Object.keys(glyphNames).map(convertGlyphToDartField).join('')}
 };`;
 
@@ -29,7 +29,7 @@ ${Object.keys(glyphNames).map(convertGlyphToDartField).join('')}
 ${glyphNamesDart}
 `
 
-    await fs.writeFile('./lib/notes/generated/glyph-definitions.dart', glyphSourceCode);
+    await fs.writeFile('./lib/notes/generated/glyph_definitions.dart', glyphSourceCode);
 
 
 
@@ -57,24 +57,24 @@ ${Object.keys(ranges).map(convertRangeNameToDartEnumEntry).join('')}
     const GlyphRangeData(this.description, this.range_start, this.range_end, this.glyphs);
   
     final String description;
-    final String range_start;
-    final String range_end;
+    final String rangeStart;
+    final String rangeEnd;
     final List<Glyph> glyphs;
 }
 
-const GLYPHRANGE_MAP = <GlyphRange, GlyphRangeData>{
+const glyphRangeMap = <GlyphRange, GlyphRangeData>{
 ${Object.keys(ranges).map(convertRangeDataToDartField).join('')}
 };`;
 
     const glyphRangeSourceCode =
-`import 'glyph-definitions.dart';
+`import 'glyph_definitions.dart';
 
 ${glyphRangeEnumDart}
 
 ${glyphRangeDataDart}
 `
 
-    await fs.writeFile('./lib/notes/generated/glyph-range-definitions.dart', glyphRangeSourceCode);
+    await fs.writeFile('./lib/notes/generated/glyph_range_definitions.dart', glyphRangeSourceCode);
 
 
 
@@ -96,19 +96,19 @@ ${Object.keys(glyphClasses).map(convertRangeNameToDartEnumEntry).join('')}
     }
 
     const glyphClassesDart =
-        `const GLYPH_CLASSES_MAP = <GlyphClass, List<Glyph>>{
+        `const glyphClassesMap = <GlyphClass, List<Glyph>>{
 ${Object.keys(glyphClasses).map(convertGlyphClassToDartField).join('')}
 };`;
 
     const glyphClassesSourceCode =
-`import 'glyph-definitions.dart';
+`import 'glyph_definitions.dart';
         
 ${glyphClassEnumDart}
 
 ${glyphClassesDart}
 `
 
-    await fs.writeFile('./lib/notes/generated/glyph-classes-definitions.dart', glyphClassesSourceCode);
+    await fs.writeFile('./lib/notes/generated/glyph_classes_definitions.dart', glyphClassesSourceCode);
 
 
 
@@ -152,10 +152,10 @@ ${glyphClassesDart}
   final double hBarThickness = ${bravuraMetaData.engravingDefaults.hBarThickness || 0};
 }
 
-const ENGRAVING_DEFAULTS = EngravingDefaults();
+const engravingDefaults = EngravingDefaults();
 `
 
-    await fs.writeFile('./lib/notes/generated/engraving-defaults.dart', engravingDefaults);
+    await fs.writeFile('./lib/notes/generated/engraving_defaults.dart', engravingDefaults);
 
 
     function convertAdvanceToDart(glyphKey, index, list) {
@@ -163,13 +163,13 @@ const ENGRAVING_DEFAULTS = EngravingDefaults();
     }
 
     const advanceToGlyphWidthsMap =
-`import 'glyph-definitions.dart';
+`import 'glyph_definitions.dart';
 
-const GLYPH_ADVANCE_WIDTHS = <Glyph, double>{
+const glyphAdvanceWidths = <Glyph, double>{
 ${Object.keys(glyphNames).filter(g=>bravuraMetaData.glyphAdvanceWidths.hasOwnProperty(g)).map(convertAdvanceToDart).join('')}
 };`;
 
-    await fs.writeFile('./lib/notes/generated/glyph-advance-widths.dart', advanceToGlyphWidthsMap);
+    await fs.writeFile('./lib/notes/generated/glyph_advance_widths.dart', advanceToGlyphWidthsMap);
 
     function convertBBoxDataToDart(glyphKey, index, list) {
         const bbox = bravuraMetaData.glyphBBoxes[glyphKey];
@@ -178,7 +178,7 @@ ${Object.keys(glyphNames).filter(g=>bravuraMetaData.glyphAdvanceWidths.hasOwnPro
 
     const glyphBBoxesDart =
 `import 'dart:ui';
-import 'glyph-definitions.dart';
+import 'glyph_definitions.dart';
 
 class GlyphBBox {
     
@@ -188,12 +188,12 @@ class GlyphBBox {
     final Offset southWest;
 }
 
-const GLYPH_BBOXES = <Glyph, GlyphBBox>{
+const glyphBBoxes = <Glyph, GlyphBBox>{
 ${Object.keys(glyphNames).filter(g=>bravuraMetaData.glyphBBoxes.hasOwnProperty(g)).map(convertBBoxDataToDart).join('')}
 };
 `;
 
-    await fs.writeFile('./lib/notes/generated/glyph-bboxes.dart', glyphBBoxesDart);
+    await fs.writeFile('./lib/notes/generated/glyph_bboxes.dart', glyphBBoxesDart);
 
     function convertAnchorsToDart(glyphKey, index, list) {
         const glyphAnchor = bravuraMetaData.glyphsWithAnchors[glyphKey];
@@ -203,7 +203,7 @@ ${Object.keys(glyphNames).filter(g=>bravuraMetaData.glyphBBoxes.hasOwnProperty(g
 
     const glyphsWithAnchorsDart =
 `import 'dart:ui';
-import 'glyph-definitions.dart';
+import 'glyph_definitions.dart';
 
 class GlyphAnchor {
 
@@ -283,12 +283,12 @@ class GlyphAnchor {
     }
 }
 
-const GLYPH_ANCHORS = <Glyph, GlyphAnchor>{
+const glyphAnchors = <Glyph, GlyphAnchor>{
 ${Object.keys(glyphNames).filter(g=>bravuraMetaData.glyphsWithAnchors.hasOwnProperty(g)).map(convertAnchorsToDart).join('')}
 };
 `;
 
-    await fs.writeFile('./lib/notes/generated/glyph-anchors.dart', glyphsWithAnchorsDart);
+    await fs.writeFile('./lib/notes/generated/glyph_anchors.dart', glyphsWithAnchorsDart);
 }
 
 exec();

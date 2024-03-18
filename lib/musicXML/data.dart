@@ -1,42 +1,54 @@
 import 'dart:ui';
+
 import 'package:music_notes_2/graphics/notes.dart';
 
-import '../graphics/render-functions/staff.dart';
+import '../graphics/render_functions/staff.dart';
 
-class Score {
+sealed class MusicDataElement {}
+
+class Score extends MusicDataElement {
   Score(this.parts);
+
   final List<Part> parts;
+
   get isEmpty => parts.isEmpty || parts.first.isEmpty;
 }
 
-class Part {
+class Part extends MusicDataElement {
   Part(this.measures);
+
   final List<Measure> measures;
+
   get isEmpty => measures.isEmpty;
 }
 
-class Measure {
+class Measure extends MusicDataElement {
   Measure(this.contents);
+
   final List<MeasureContent> contents;
+
   Attributes? get attributes {
     final attributes = contents.whereType<Attributes>();
     return attributes.isNotEmpty ? attributes.first : null;
   }
+
   Barline get barline {
     final barline = contents.whereType<Barline>();
     return barline.isNotEmpty ? barline.first : Barline(BarLineTypes.regular);
   }
 }
 
-class MeasureContent {}
+class MeasureContent extends MusicDataElement {}
 
 class Barline extends MeasureContent {
   Barline(this.barStyle);
+
   final BarLineTypes barStyle;
 }
 
 class Direction extends MeasureContent {
   Direction(this.type, this.staff, [this.placement]);
+
   final DirectionType type;
   final int staff;
   final PlacementValue? placement;
@@ -46,6 +58,7 @@ class DirectionType {}
 
 class OctaveShift extends DirectionType {
   OctaveShift(this.number, this.type, [this.size]);
+
   final int number;
   final UpDownStopCont type;
   final int? size;
@@ -55,6 +68,7 @@ enum UpDownStopCont { up, down, stop, continued }
 
 class Wedge extends DirectionType {
   Wedge(this.number, this.type);
+
   final int number;
   final WedgeType type;
 }
@@ -62,8 +76,8 @@ class Wedge extends DirectionType {
 enum WedgeType { crescendo, diminuendo, stop, continued }
 
 class Words extends DirectionType {
-  Words(this.content,
-      {this.fontFamily, this.fontSize, this.fontStyle, this.fontWeight});
+  Words(this.content, {this.fontFamily, this.fontSize, this.fontStyle, this.fontWeight});
+
   final String content;
   final String? fontFamily;
   final double? fontSize;
@@ -82,6 +96,7 @@ enum NoteLength { whole, half, quarter, eighth, sixteenth, thirtysecond }
 
 class Attributes extends MeasureContent {
   Attributes([this.divisions, this.key, this.staves, this.clefs, this.time]);
+
   final int? divisions;
   final MusicalKey? key;
   final int? staves;
@@ -89,80 +104,53 @@ class Attributes extends MeasureContent {
   final Time? time;
 
   bool get isValidForFirstMeasure =>
-      divisions != null &&
-      key != null &&
-      staves != null &&
-      clefs != null &&
-      clefs!.isNotEmpty &&
-      time != null;
-
-  Attributes copyWithParams(
-      {int? divisions,
-      MusicalKey? key,
-      int? staves,
-      List<Clef>? clefs,
-      Time? time}) {
-    return Attributes(
-      divisions ?? this.divisions,
-      key ?? this.key,
-      staves ?? this.staves,
-      clefs ?? this.clefs,
-      time ?? this.time,
-    );
-  }
+      divisions != null && key != null && staves != null && clefs != null && clefs!.isNotEmpty && time != null;
 
   Attributes copyWithObject(Attributes attributes) {
     return Attributes(
-      attributes.divisions ?? this.divisions,
-      attributes.key ?? this.key,
-      attributes.staves ?? this.staves,
-      attributes.clefs ?? this.clefs,
-      attributes.time ?? this.time,
+      attributes.divisions ?? divisions,
+      attributes.key ?? key,
+      attributes.staves ?? staves,
+      attributes.clefs ?? clefs,
+      attributes.time ?? time,
     );
   }
 }
 
 class Time {
   Time(this.beats, this.beatType);
+
   final int beats;
   final int beatType;
 }
 
 class Clef {
   Clef(this.staffNumber, this.sign);
+
   final int staffNumber;
   final Clefs sign;
 }
 
-enum KeyMode {
-  none,
-  major,
-  minor,
-  dorian,
-  phrygian,
-  lydian,
-  mixolydian,
-  aeolian,
-  ionian,
-  locrian
-}
+enum KeyMode { none, major, minor, dorian, phrygian, lydian, mixolydian, aeolian, ionian, locrian }
 
 typedef Fifths = int;
+
 enum CircleOfFifths {
-  C_A,
-  G_E,
-  D_B,
-  A_Fsharp,
-  E_Csharp,
-  B_Gsharp,
-  Fsharp_Dsharp,
-  Gflat_Eflat,
-  Dflat_Bflat,
-  Aflat_F,
-  Eflat_C,
-  Bflat_G,
-  F_D
+  C_A, // ignore: constant_identifier_names
+  G_E, // ignore: constant_identifier_names
+  D_B, // ignore: constant_identifier_names
+  A_Fsharp, // ignore: constant_identifier_names
+  E_Csharp, // ignore: constant_identifier_names
+  B_Gsharp, // ignore: constant_identifier_names
+  Fsharp_Dsharp, // ignore: constant_identifier_names
+  Gflat_Eflat, // ignore: constant_identifier_names
+  Dflat_Bflat, // ignore: constant_identifier_names
+  Aflat_F, // ignore: constant_identifier_names
+  Eflat_C, // ignore: constant_identifier_names
+  Bflat_G, // ignore: constant_identifier_names
+  F_D // ignore: constant_identifier_names
 }
+
 const Map<CircleOfFifths, Fifths> _fifthsToIntMap = {
   CircleOfFifths.C_A: 0,
   CircleOfFifths.G_E: 1,
@@ -187,12 +175,14 @@ extension CircleOfFifthsValues on CircleOfFifths {
 
 class MusicalKey {
   MusicalKey(this.fifths, this.mode);
+
   final Fifths fifths;
   final KeyMode? mode;
 }
 
 class Note extends MeasureContent {
   Note(this.duration, this.voice, this.staff, this.notations);
+
   final int duration;
   final int voice;
   final int staff;
@@ -200,14 +190,13 @@ class Note extends MeasureContent {
 }
 
 class RestNote extends Note {
-  RestNote(int duration, int voice, int staff, List<Notation> notations) : super(duration, voice, staff, notations);
+  RestNote(super.duration, super.voice, super.staff, super.notations);
 }
 
 class PitchNote extends Note {
-  PitchNote(int duration, int voice, int staff, List<Notation> notations,
-      this.pitch, this.type, this.stem, this.beams,
-      {this.dots = 0, this.chord = false})
-      : super(duration, voice, staff, notations);
+  PitchNote(super.duration, super.voice, super.staff, super.notations, this.pitch, this.type, this.stem, this.beams,
+      {this.dots = 0, this.chord = false});
+
   final Pitch pitch;
   final NoteLength type;
   final StemValue stem;
@@ -216,16 +205,15 @@ class PitchNote extends Note {
   final bool chord;
 
   NotePosition get notePosition => NotePosition(
-      tone: pitch.step,
-      length: type,
-      octave: pitch.octave,
-      accidental: pitch.accidental,
-  );
+        tone: pitch.step,
+        length: type,
+        octave: pitch.octave,
+        accidental: pitch.accidental,
+      );
 }
 
 abstract class Notation {
-  Notation([PlacementValue? placementValue])
-      : this.placement = placementValue ?? PlacementValue.below;
+  Notation([PlacementValue? placementValue]) : placement = placementValue ?? PlacementValue.below;
   final PlacementValue placement;
 }
 
@@ -247,11 +235,11 @@ class Fingering extends Notation {
 }
 
 class Accent extends Notation {
-  Accent([PlacementValue? placement]) : super(placement);
+  Accent([super.placement]);
 }
 
 class Staccato extends Notation {
-  Staccato([PlacementValue? placement]) : super(placement);
+  Staccato([super.placement]);
 }
 
 class Dynamics extends Notation {
@@ -298,6 +286,7 @@ enum PlacementValue { above, below }
 
 class Beam {
   Beam(this.id, this.number, this.value);
+
   final int id;
   final int number;
   final BeamValue value;
@@ -310,23 +299,24 @@ class Beam {
 
 class Pitch {
   Pitch(this.step, this.octave, [this.alter]);
+
   final BaseTones step;
   final int octave;
   final int? alter;
 
   Accidentals get accidental => alter == null || alter == 0
       ? Accidentals.none
-      : (alter == -1
-          ? Accidentals.flat
-          : (alter == 1 ? Accidentals.sharp : Accidentals.none));
+      : (alter == -1 ? Accidentals.flat : (alter == 1 ? Accidentals.sharp : Accidentals.none));
 }
 
 class Backup extends MeasureContent {
   Backup(this.duration);
+
   final int duration;
 }
 
 class Forward extends MeasureContent {
   Forward(this.duration);
+
   final int duration;
 }

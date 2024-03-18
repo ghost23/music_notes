@@ -1,6 +1,7 @@
 import 'dart:collection';
+
 import '../musicXML/data.dart';
-import 'generated/glyph-definitions.dart';
+import 'generated/glyph_definitions.dart';
 
 const Map<Clefs, Glyph> clefToGlyphMap = {
   Clefs.G: Glyph.gClef,
@@ -69,32 +70,47 @@ const Map<Accidentals, Glyph?> accidentalGlyphMap = {
 
 BaseTones baseToneFromNumericValue(int value, bool preferSharp) {
   final valueWithinOctave = value % 12;
-  switch(valueWithinOctave) {
-    case 0: return BaseTones.C;
-    case 1: return preferSharp ? BaseTones.C : BaseTones.D;
-    case 2: return BaseTones.D;
-    case 3: return preferSharp ? BaseTones.D : BaseTones.E;
-    case 4: return BaseTones.E;
-    case 5: return BaseTones.F;
-    case 6: return preferSharp ? BaseTones.F : BaseTones.G;
-    case 7: return BaseTones.G;
-    case 8: return preferSharp ? BaseTones.G : BaseTones.A;
-    case 9: return BaseTones.A;
-    case 10: return preferSharp ? BaseTones.A : BaseTones.B;
-    case 11: return BaseTones.B;
-    default: return BaseTones.C;
+  switch (valueWithinOctave) {
+    case 0:
+      return BaseTones.C;
+    case 1:
+      return preferSharp ? BaseTones.C : BaseTones.D;
+    case 2:
+      return BaseTones.D;
+    case 3:
+      return preferSharp ? BaseTones.D : BaseTones.E;
+    case 4:
+      return BaseTones.E;
+    case 5:
+      return BaseTones.F;
+    case 6:
+      return preferSharp ? BaseTones.F : BaseTones.G;
+    case 7:
+      return BaseTones.G;
+    case 8:
+      return preferSharp ? BaseTones.G : BaseTones.A;
+    case 9:
+      return BaseTones.A;
+    case 10:
+      return preferSharp ? BaseTones.A : BaseTones.B;
+    case 11:
+      return BaseTones.B;
+    default:
+      return BaseTones.C;
   }
 }
 
 Accidentals accidentalFromNumericValue(int value, bool preferSharp) {
   final valueWithinOctave = value % 12;
-  switch(valueWithinOctave) {
+  switch (valueWithinOctave) {
     case 1:
     case 3:
     case 6:
     case 8:
-    case 10: return preferSharp ? Accidentals.sharp : Accidentals.flat;
-    default: return Accidentals.none;
+    case 10:
+      return preferSharp ? Accidentals.sharp : Accidentals.flat;
+    default:
+      return Accidentals.none;
   }
 }
 
@@ -109,18 +125,20 @@ class XPositionedMeasureContent {
 /// like notes, accidentals, legers, articulation glyphs, etc.
 /// It is more a positional info object. Maybe we should not actually call it Note?!
 class NotePosition {
-  const NotePosition({required this.tone, required this.length, this.accidental = Accidentals.none, required this.octave});
+  const NotePosition(
+      {required this.tone, required this.length, this.accidental = Accidentals.none, required this.octave});
 
   final BaseTones tone;
   final Accidentals accidental;
+
   /// 0 = C, 1 = c, 2 = c', etc.
   final int octave;
   final NoteLength length;
 
-  NotePosition.fromNumericValue(int value, this.length, bool preferSharp) :
-      octave = (value / 12).floor(),
-      tone = baseToneFromNumericValue(value, preferSharp),
-      accidental = accidentalFromNumericValue(value, preferSharp);
+  NotePosition.fromNumericValue(int value, this.length, bool preferSharp)
+      : octave = (value / 12).floor(),
+        tone = baseToneFromNumericValue(value, preferSharp),
+        accidental = accidentalFromNumericValue(value, preferSharp);
 
   int diffToNote(NotePosition other) {
     return numericValue - other.numericValue;
@@ -139,28 +157,23 @@ class NotePosition {
 
   @override
   bool operator ==(Object other) {
-    return other is NotePosition &&
-      numericValue == other.numericValue;
+    return other is NotePosition && numericValue == other.numericValue;
   }
 
   bool operator >(Object other) {
-    return other is NotePosition &&
-    numericValue > other.numericValue;
+    return other is NotePosition && numericValue > other.numericValue;
   }
 
   bool operator >=(Object other) {
-    return other is NotePosition &&
-        numericValue >= other.numericValue;
+    return other is NotePosition && numericValue >= other.numericValue;
   }
 
   bool operator <(Object other) {
-    return other is NotePosition &&
-        numericValue < other.numericValue;
+    return other is NotePosition && numericValue < other.numericValue;
   }
 
   bool operator <=(Object other) {
-    return other is NotePosition &&
-        numericValue <= other.numericValue;
+    return other is NotePosition && numericValue <= other.numericValue;
   }
 
   @override
@@ -170,7 +183,6 @@ class NotePosition {
 
   @override
   int get hashCode => tone.hashCode ^ accidental.hashCode ^ octave.hashCode;
-
 }
 
 /// We use the following two maps to specify the general accidentals for
