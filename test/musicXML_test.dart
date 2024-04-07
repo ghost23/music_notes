@@ -8,9 +8,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
-import 'package:music_notes_2/musicXML/data.dart';
-import 'package:music_notes_2/musicXML/parser.dart';
-import 'package:music_notes_2/graphics/music-line.dart';
+import 'package:music_notes/musicXML/data.dart';
+import 'package:music_notes/musicXML/parser.dart';
+import 'package:music_notes/graphics/music-line.dart';
 import 'package:xml/xml.dart';
 
 void main() {
@@ -53,7 +53,7 @@ void main() {
     final builder = GoldenBuilder.column()
         ..addScenario(
           'demo',
-          Container(
+          SizedBox(
               width: 500,
               height: 240,
               child: MusicLine(

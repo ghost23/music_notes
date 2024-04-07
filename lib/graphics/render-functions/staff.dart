@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:music_notes_2/graphics/generated/glyph-range-definitions.dart';
+import '../generated/glyph-range-definitions.dart';
 import 'DrawingContext.dart';
 import 'glyph.dart';
 import 'note.dart';
@@ -18,7 +18,7 @@ paintStaffLines(DrawingContext drawC, bool noAdvance) {
 
   final lineWidth = drawC.size.width - drawC.canvas.getTranslation().dx;
 
-  drawC.canvas.drawLine(Offset(0, 0), Offset(lineWidth, 0), paint);
+  drawC.canvas.drawLine(const Offset(0, 0), Offset(lineWidth, 0), paint);
   drawC.canvas.drawLine(Offset(0, lS * 1), Offset(lineWidth, lS * 1), paint);
   drawC.canvas.drawLine(Offset(0, lS * 2), Offset(lineWidth, lS * 2), paint);
   drawC.canvas.drawLine(Offset(0, lS * 3), Offset(lineWidth, lS * 3), paint);
@@ -41,7 +41,7 @@ paintBarLine(DrawingContext drawC, Barline barline, bool noAdvance) {
   final paint = Paint()..color = Colors.black;
   final staves = drawC.latestAttributes.staves!;
 
-  final startOffset = Offset(0, 0);
+  const startOffset = Offset(0, 0);
   final endOffset = Offset(0, staves > 1 ? drawC.staffHeight*2+drawC.staffsSpacing:drawC.staffHeight);
 
   if(noAdvance) {
@@ -124,17 +124,20 @@ Rect? paintAccidentalsForTone(DrawingContext drawC, Clefs staff, Fifths tone, {b
 
   double lineSpacing = drawC.lS;
   final accidentals = staff == Clefs.F ? mainToneAccidentalsMapForFClef[tone]! : mainToneAccidentalsMapForGClef[tone]!;
-  accidentals.forEach((note) {
+  for (var note in accidentals) {
     if(note.accidental != Accidentals.none) {
       final glyphBB = paintGlyph(
         drawC,
         accidentalGlyphMap[note.accidental]!,
         yOffset: (lineSpacing/2) * calculateYOffsetForNote(staff, note.positionalValue),
       );
-      if(boundingBox == null) boundingBox = glyphBB.boundingBox;
-      else boundingBox = boundingBox!.expandToInclude(glyphBB.boundingBox);
+      if(boundingBox == null) {
+        boundingBox = glyphBB.boundingBox;
+      } else {
+        boundingBox = boundingBox.expandToInclude(glyphBB.boundingBox);
+      }
     }
-  });
+  }
 
   if(noAdvance) {
     drawC.canvas.restore();
@@ -146,11 +149,11 @@ Rect? paintAccidentalsForTone(DrawingContext drawC, Clefs staff, Fifths tone, {b
 double calculateAccidentalsForToneWidth(DrawingContext drawC, Fifths tone) {
   double width = 0;
   final accidentals = mainToneAccidentalsMapForFClef[tone]!;
-  accidentals.forEach((note) {
+  for (var note in accidentals) {
     if(note.accidental != Accidentals.none) {
       width += calculateGlyphWidth(drawC, accidentalGlyphMap[note.accidental]!);
     }
-  });
+  }
   return width;
 }
 

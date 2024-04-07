@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:collection/collection.dart';
-import 'package:music_notes_2/graphics/generated/engraving-defaults.dart';
+import '../generated/engraving-defaults.dart';
 import '../../musicXML/data.dart';
 import '../generated/glyph-anchors.dart';
 import 'DrawingContext.dart';

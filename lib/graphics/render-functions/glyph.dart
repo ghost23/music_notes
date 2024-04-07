@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:music_notes_2/graphics/graphics-model/glyph.dart';
+import '../graphics-model/glyph.dart';
 import '../generated/glyph-advance-widths.dart';
 import '../generated/glyph-bboxes.dart';
 import '../generated/glyph-definitions.dart';

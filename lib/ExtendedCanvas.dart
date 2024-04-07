@@ -6,9 +6,9 @@ import 'dart:ui';
 /// translation: https://github.com/flutter/flutter/issues/38721
 class XCanvas implements Canvas {
   Offset _currentTranslation;
-  List<Offset> _translationStack;
+  final List<Offset> _translationStack;
   late Canvas _canvas;
-  XCanvas(Canvas canvas): _currentTranslation = Offset(0,0), _translationStack = [Offset(0,0)] {
+  XCanvas(Canvas canvas): _currentTranslation = const Offset(0,0), _translationStack = [const Offset(0,0)] {
     _canvas = canvas;
   }
 
@@ -31,10 +31,10 @@ class XCanvas implements Canvas {
   }
 
   void executeGlobally(VoidCallback command) {
-    this.save();
-    this.translate(-_currentTranslation.dx, -_currentTranslation.dy);
+    save();
+    translate(-_currentTranslation.dx, -_currentTranslation.dy);
     command();
-    this.restore();
+    restore();
   }
 
   @override

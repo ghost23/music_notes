@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:music_notes_2/graphics/render-functions/measure.dart';
+import 'render-functions/measure.dart';
 import 'render-functions/DrawingContext.dart';
 import 'render-functions/common.dart';
 import 'render-functions/staff.dart';
@@ -12,7 +12,7 @@ import '../../ExtendedCanvas.dart';
 import 'package:collection/collection.dart';
 
 class MusicLineOptions {
-  MusicLineOptions(this.score, this.staffHeight, double topMarginFactor): this.topMargin = staffHeight * topMarginFactor;
+  MusicLineOptions(this.score, this.staffHeight, double topMarginFactor): topMargin = staffHeight * topMarginFactor;
 
   final Score score;
   final double staffHeight;
@@ -30,8 +30,7 @@ class MusicLineOptions {
 }
 
 class MusicLine extends StatefulWidget {
-  const MusicLine({Key? key, required this.options})
-      : super(key: key);
+  const MusicLine({super.key, required this.options});
 
   final MusicLineOptions options;
 
@@ -79,7 +78,7 @@ class _MusicLineState extends State<MusicLine> {
 
 class BackgroundPainter extends CustomPainter {
   BackgroundPainter(this.options, this.staffsSpacing)
-      : this.lineSpacing = getLineSpacing(options.staffHeight);
+      : lineSpacing = getLineSpacing(options.staffHeight);
 
   final MusicLineOptions options;
   final double staffsSpacing;
@@ -127,7 +126,7 @@ class BackgroundPainter extends CustomPainter {
 
 class ForegroundPainter extends CustomPainter {
   ForegroundPainter(this.options, this.staffsSpacing)
-      : this.lineSpacing = getLineSpacing(options.staffHeight);
+      : lineSpacing = getLineSpacing(options.staffHeight);
 
   final MusicLineOptions options;
   final double staffsSpacing;

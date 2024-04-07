@@ -47,7 +47,7 @@ paintMeasure(Measure measure, DrawingContext drawC) {
           paintRestNote(drawC, measureContent as RestNote, noAdvance: !isLastElement); break;
         }
         default: {
-          throw new FormatException('${measureContent.runtimeType} is an invalid MeasureContent type');
+          throw FormatException('${measureContent.runtimeType} is an invalid MeasureContent type');
         }
       }
     });
@@ -56,7 +56,7 @@ paintMeasure(Measure measure, DrawingContext drawC) {
 
     // TODO: Spacing between columns, currently static, probably needs to be dynamic
     // to justify measures for the whole line
-    if(column.length > 0 && columnIndex < grid.length - 1) {
+    if(column.isNotEmpty && columnIndex < grid.length - 1) {
       drawC.canvas.translate(drawC.lS * 1, 0);
     }
   });
@@ -64,7 +64,7 @@ paintMeasure(Measure measure, DrawingContext drawC) {
   final rightEnd = drawC.canvas.getTranslation().dx;
   final measureWidth = rightEnd - leftEnd;
 
-  positioned.forEach((xPosElement) {
+  for (var xPosElement in positioned) {
     drawC.canvas.save();
     drawC.canvas.translate(-measureWidth*xPosElement.xPosition, 0);
     switch(xPosElement.measureContent.runtimeType) {
@@ -76,11 +76,11 @@ paintMeasure(Measure measure, DrawingContext drawC) {
         paintRestNote(drawC, xPosElement.measureContent as RestNote, noAdvance: true); break;
       }
       default: {
-        throw new FormatException('${xPosElement.measureContent.runtimeType} is an invalid MeasureContent type');
+        throw FormatException('${xPosElement.measureContent.runtimeType} is an invalid MeasureContent type');
       }
     }
     drawC.canvas.restore();
-  });
+  }
 
   final xyTranslation = drawC.canvas.getTranslation();
   final List<Rect> stavesBounds = [];
@@ -125,7 +125,7 @@ Rect calculateColumnAlignment(DrawingContext drawC, Iterable<PitchNoteRenderMeas
   final columnsOnCurrentTime = columnsOnFourFour * currentTimeFactor;
   if(columnsOnCurrentTime % 1 != 0) {
     // Not a whole number. Means, the divisions number does not work for the Time. This is an error!
-    throw new FormatException(
+    throw FormatException(
         'Found divisions of ${drawC.latestAttributes.divisions} on a Time of ${drawC.latestAttributes.time!.beats}/${drawC.latestAttributes.time!.beatType}, which does not work.'
     );
   }
@@ -137,7 +137,7 @@ Rect calculateColumnAlignment(DrawingContext drawC, Iterable<PitchNoteRenderMeas
   List<MeasureContent> currentColumn = grid[currentColumnPointer];
   measure.contents.forEachIndexed((index, element) {
     if(currentColumnPointer >= grid.length && element.runtimeType != Backup && element.runtimeType != Barline) {
-      throw new FormatException(
+      throw FormatException(
           'currentColumnPointer can only point beyond end of grid length, if next element is Backup or Barline. But was: ${element.runtimeType.toString()}'
       );
     } else if(currentColumnPointer < grid.length) {
@@ -172,7 +172,7 @@ Rect calculateColumnAlignment(DrawingContext drawC, Iterable<PitchNoteRenderMeas
                 if (!nextElement.chord) {
                   // next element is not a chord note anymore, so apply saved chordDuration
                   if (chordDuration == null) {
-                    throw new FormatException('End of a chord reached, should have chordDuration, but is null.');
+                    throw const FormatException('End of a chord reached, should have chordDuration, but is null.');
                   }
                   currentColumnPointer += chordDuration!;
                   chordDuration = null;
@@ -207,7 +207,7 @@ Rect calculateColumnAlignment(DrawingContext drawC, Iterable<PitchNoteRenderMeas
         break;
       }
       default: {
-        throw new FormatException('${element.runtimeType} is an unknown MeasureContent type');
+        throw FormatException('${element.runtimeType} is an unknown MeasureContent type');
       }
     }
   });
@@ -236,8 +236,11 @@ paintMeasureAttributes(Attributes attributes, DrawingContext drawC) {
                 + (lS*clefToPositionOffsetMap[clef.sign]!),
             noAdvance: index < (clefs.length-1)
         );
-        if(clefBB == null) clefBB = glyphBB.boundingBox;
-        else clefBB = clefBB!.expandToInclude(glyphBB.boundingBox);
+        if(clefBB == null) {
+          clefBB = glyphBB.boundingBox;
+        } else {
+          clefBB = clefBB!.expandToInclude(glyphBB.boundingBox);
+        }
       });
       boundingBox = clefBB;
       drawC.canvas.translate(drawC.lS * 1, 0);
@@ -248,10 +251,11 @@ paintMeasureAttributes(Attributes attributes, DrawingContext drawC) {
         final glyphBB = paintAccidentalsForTone(drawC, clef.sign, fifths, noAdvance: index < (clefs.length-1));
         drawC.canvas.translate(0, -staffYPos(drawC, clef.staffNumber));
         if(glyphBB != null) {
-          if (accidentalBB == null)
+          if (accidentalBB == null) {
             accidentalBB = glyphBB;
-          else
+          } else {
             accidentalBB = accidentalBB!.expandToInclude(glyphBB);
+          }
         }
       });
       if(accidentalBB != null && !accidentalBB!.isEmpty) {
@@ -266,8 +270,11 @@ paintMeasureAttributes(Attributes attributes, DrawingContext drawC) {
         drawC.canvas.translate(0, staffYPos(drawC, clef.staffNumber));
         final glyphBB = paintTimeSignature(drawC, attributes, noAdvance: index < (clefs.length-1));
         drawC.canvas.translate(0, -staffYPos(drawC, clef.staffNumber));
-        if(timesBB == null) timesBB = glyphBB;
-        else timesBB = timesBB!.expandToInclude(glyphBB);
+        if(timesBB == null) {
+          timesBB = glyphBB;
+        } else {
+          timesBB = timesBB!.expandToInclude(glyphBB);
+        }
       });
 
       if(timesBB != null) {

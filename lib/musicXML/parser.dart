@@ -1,11 +1,11 @@
 import 'dart:ui';
-import 'package:music_notes_2/graphics/render-functions/staff.dart';
+import '../graphics/render-functions/staff.dart';
 import 'package:xml/xml.dart';
 import 'dart:io';
 import 'data.dart';
 import 'package:uuid/uuid.dart';
 
-final uuid = Uuid();
+const uuid = Uuid();
 
 XmlDocument loadMusicXMLFile(String filePath) {
   final File file = File(filePath);
@@ -23,7 +23,7 @@ Part parsePartXML(XmlElement partXML) {
   if (parsedMeasures.isNotEmpty &&
       (parsedMeasures.first.attributes == null ||
           !parsedMeasures.first.attributes!.isValidForFirstMeasure)) {
-    throw new FormatException(
+    throw const FormatException(
         'The first measure of a part must include Attributes');
   }
   return Part(parsedMeasures);
@@ -109,13 +109,14 @@ Attributes? parseAttributesXML(XmlElement attributesXML) {
 
       if (sign != null) {
         return Clef(number, sign);
-      } else
+      } else {
         return null;
+      }
     }).whereType<Clef>().toList();
   }
 
   if ((staves ?? 0) != (clefs != null ? clefs.length : 0)) {
-    throw new FormatException(
+    throw const FormatException(
         'The number of staves has to meet the number of clefs');
   }
 
@@ -137,7 +138,7 @@ Attributes? parseAttributesXML(XmlElement attributesXML) {
   if (divisions == null &&
       key == null &&
       staves == null &&
-      (clefs == null || clefs.length <= 0) &&
+      (clefs == null || clefs.isEmpty) &&
       time == null) {
     return null;
   } else {
@@ -189,7 +190,7 @@ Direction? parseDirectionXML(XmlElement directionXML) {
       break;
     case null:
       {
-        throw new AssertionError(
+        throw AssertionError(
             'direction-type element missing in direction.');
       }
     default:
@@ -276,7 +277,7 @@ Words? parseWordsXML(XmlElement wordsXML) {
       fontWeight = null;
   }
 
-  if (content.length > 0) {
+  if (content.isNotEmpty) {
     return Words(content,
         fontFamily: fontFamily,
         fontSize: fontSize,
@@ -393,7 +394,7 @@ int currentBeamId = 0;
 int beamStructsOpen = 0;
 
 Beam? parseBeamXML(XmlElement beamXML) {
-  final String? valueString = beamXML.innerText;
+  final String valueString = beamXML.innerText;
   final BeamValue? value = valueString != null
       ? BeamValue.values
           .firstWhere((e) => e.toString() == 'BeamValue.continued' ? valueString == 'continue' : e.toString() == 'BeamValue.$valueString')
@@ -418,7 +419,7 @@ Iterable<Notation> parseNotationXML(XmlElement notationXML) {
 
   final fingeringElmt = notationXML.findAllElements('fingering');
   final String? fingering =
-      fingeringElmt.length >= 1 ? fingeringElmt.first.innerText : null;
+      fingeringElmt.isNotEmpty ? fingeringElmt.first.innerText : null;
   if (fingering != null) {
     result.add(Fingering(fingering, parsePlacementAttr(fingeringElmt.first)));
   }
@@ -436,13 +437,13 @@ Iterable<Notation> parseNotationXML(XmlElement notationXML) {
   }
 
   final staccatoElmt = notationXML.findAllElements('staccato');
-  final bool staccato = staccatoElmt.length >= 1;
+  final bool staccato = staccatoElmt.isNotEmpty;
   if (staccato) {
     result.add(Staccato(parsePlacementAttr(staccatoElmt.first)));
   }
 
   final accentElmt = notationXML.findAllElements('accent');
-  final bool accent = accentElmt.length >= 1;
+  final bool accent = accentElmt.isNotEmpty;
   if (accent) {
     result.add(Accent(parsePlacementAttr(accentElmt.first)));
   }

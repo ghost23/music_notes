@@ -1,5 +1,5 @@
 import 'dart:ui';
-import 'package:music_notes_2/graphics/notes.dart';
+import '../graphics/notes.dart';
 
 import '../graphics/render-functions/staff.dart';
 
@@ -113,11 +113,11 @@ class Attributes extends MeasureContent {
 
   Attributes copyWithObject(Attributes attributes) {
     return Attributes(
-      attributes.divisions ?? this.divisions,
-      attributes.key ?? this.key,
-      attributes.staves ?? this.staves,
-      attributes.clefs ?? this.clefs,
-      attributes.time ?? this.time,
+      attributes.divisions ?? divisions,
+      attributes.key ?? key,
+      attributes.staves ?? staves,
+      attributes.clefs ?? clefs,
+      attributes.time ?? time,
     );
   }
 }
@@ -200,14 +200,13 @@ class Note extends MeasureContent {
 }
 
 class RestNote extends Note {
-  RestNote(int duration, int voice, int staff, List<Notation> notations) : super(duration, voice, staff, notations);
+  RestNote(super.duration, super.voice, super.staff, super.notations);
 }
 
 class PitchNote extends Note {
-  PitchNote(int duration, int voice, int staff, List<Notation> notations,
+  PitchNote(super.duration, super.voice, super.staff, super.notations,
       this.pitch, this.type, this.stem, this.beams,
-      {this.dots = 0, this.chord = false})
-      : super(duration, voice, staff, notations);
+      {this.dots = 0, this.chord = false});
   final Pitch pitch;
   final NoteLength type;
   final StemValue stem;
@@ -225,7 +224,7 @@ class PitchNote extends Note {
 
 abstract class Notation {
   Notation([PlacementValue? placementValue])
-      : this.placement = placementValue ?? PlacementValue.below;
+      : placement = placementValue ?? PlacementValue.below;
   final PlacementValue placement;
 }
 
@@ -247,11 +246,11 @@ class Fingering extends Notation {
 }
 
 class Accent extends Notation {
-  Accent([PlacementValue? placement]) : super(placement);
+  Accent([super.placement]);
 }
 
 class Staccato extends Notation {
-  Staccato([PlacementValue? placement]) : super(placement);
+  Staccato([super.placement]);
 }
 
 class Dynamics extends Notation {

@@ -1,7 +1,5 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:music_notes_2/graphics/graphics-model/measure.dart';
-
+import '../graphics-model/measure.dart';
 import 'common.dart';
 import 'beam.dart';
 import '../music-line.dart';
@@ -11,15 +9,14 @@ import '../../musicXML/data.dart';
 class DrawingContext extends MusicLineOptions {
 
   DrawingContext(
-      Score score,
-      double staffHeight,
-      double topMargin,
+      super.score,
+      super.staffHeight,
+      super.topMargin,
       this.canvas,
       this.size,
       this.staffsSpacing,
       ) : _currentAttributes = score.parts.first.measures.first.attributes!,
-        measuresPerPart = List.filled(score.parts.length, List.empty(growable: true), growable: false),
-        super(score, staffHeight, topMargin);
+        measuresPerPart = List.filled(score.parts.length, List.empty(growable: true), growable: false);
 
   final XCanvas canvas;
   final Size size;
