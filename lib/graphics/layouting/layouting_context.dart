@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'dart:ui';
 
 import '../../musicXML/data.dart';
 import '../music_line.dart';
@@ -15,6 +15,7 @@ class LayoutingContext extends MusicLineOptions {
 
   final Size size;
   final double staffsSpacing;
+  Offset drawPos = Offset.zero;
 
   get lS => getLineSpacing(staffHeight);
 

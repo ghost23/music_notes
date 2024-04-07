@@ -357,6 +357,8 @@ Pitch? parsePitchXML(XmlElement pitchXML) {
   }
 }
 
+// TODO: This is terrible! Module state! Change it!
+// Beside a thousand other reasons why this is bad, one is that xml parsing only ever works once!
 int currentBeamId = 0;
 int beamStructsOpen = 0;
 

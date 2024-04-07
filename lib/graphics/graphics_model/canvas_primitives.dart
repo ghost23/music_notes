@@ -1,21 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:music_notes_2/graphics/layouting/rules/layout_rule.dart';
 
 import '../generated/glyph_bboxes.dart';
 import '../generated/glyph_definitions.dart';
 import '/graphics/generated/glyph_anchors.dart';
 
 sealed class Element {
-  Element(this.pointOfOrigin, this.lS, this.paint);
+  Element(this.pointOfOrigin, this.paint);
 
   Offset pointOfOrigin;
-  double lS;
   Paint paint;
+  List<LayoutRule> influencers = [];
 
   Rect get boundingBox;
 }
 
 class GroupElement extends Element {
-  GroupElement(pointOfOrigin, lS, this.elements) : super(pointOfOrigin, lS, Paint());
+  GroupElement(pointOfOrigin, [this.elements = const []]) : super(pointOfOrigin, Paint());
 
   List<Element> elements;
 
@@ -24,7 +25,7 @@ class GroupElement extends Element {
 }
 
 class PathElement extends Element {
-  PathElement(super.pointOfOrigin, super.lS, super.paint, this.path);
+  PathElement(super.pointOfOrigin, super.paint, this.path);
 
   Path path;
 
@@ -33,7 +34,7 @@ class PathElement extends Element {
 }
 
 class LineElement extends Element {
-  LineElement(super.pointOfOrigin, super.lS, super.paint, this.startPoint, this.endPoint);
+  LineElement(super.pointOfOrigin, super.paint, this.startPoint, this.endPoint);
 
   Offset startPoint;
   Offset endPoint;
@@ -43,7 +44,7 @@ class LineElement extends Element {
 }
 
 class RectElement extends Element {
-  RectElement(super.pointOfOrigin, super.lS, super.paint, this.rect);
+  RectElement(super.pointOfOrigin, super.paint, this.rect);
 
   Rect rect;
 
@@ -52,7 +53,7 @@ class RectElement extends Element {
 }
 
 class GlyphElement extends Element {
-  GlyphElement(pointOfOrigin, lS, this.style, this.glyph) : super(pointOfOrigin, lS, Paint());
+  GlyphElement(pointOfOrigin, this.style, this.glyph) : super(pointOfOrigin, Paint());
 
   TextStyle style;
   Glyph glyph;
@@ -62,8 +63,7 @@ class GlyphElement extends Element {
   @override
   Rect get boundingBox {
     final bbox = glyphBBoxes[glyph];
-    Rect result = Rect.fromLTRB(lS * bbox!.southWest.dx, lS * bbox.northEast.dy + lS * 2, lS * bbox.northEast.dx,
-        lS * bbox.southWest.dy + lS * 2);
+    Rect result = Rect.fromLTRB(bbox!.southWest.dx, bbox.northEast.dy + 2, bbox.northEast.dx, bbox.southWest.dy + 2);
     return result;
   }
 }
