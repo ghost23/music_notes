@@ -9,7 +9,6 @@
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:music_notes_2/graphics/music_line.dart';
 import 'package:music_notes_2/musicXML/data.dart';
 import 'package:music_notes_2/musicXML/parser.dart';

@@ -5,11 +5,11 @@ import '../musicXML/data.dart';
 import 'generated/engraving_defaults.dart';
 import 'generated/glyph_advance_widths.dart';
 import 'generated/glyph_definitions.dart';
-import 'render_functions/common.dart';
-import 'render_functions/drawing_context.dart';
-import 'render_functions/glyph.dart';
-import 'render_functions/measure.dart';
-import 'render_functions/staff.dart';
+import 'render/common.dart';
+import 'render/drawing_context.dart';
+import 'render/glyph.dart';
+import 'render/measure.dart';
+import 'render/staff.dart';
 
 class MusicLineOptions {
   MusicLineOptions(this.score, this.staffHeight, double topMarginFactor) : topMargin = staffHeight * topMarginFactor;

@@ -1,8 +1,6 @@
 import 'dart:ui';
-
 import 'package:music_notes_2/graphics/notes.dart';
-
-import '../graphics/render_functions/staff.dart';
+import '../graphics/render/staff.dart';
 
 sealed class MusicDataElement {}
 
@@ -33,8 +31,8 @@ class Measure extends MusicDataElement {
   }
 
   Barline get barline {
-    final barline = contents.whereType<Barline>();
-    return barline.isNotEmpty ? barline.first : Barline(BarLineTypes.regular);
+    final barlines = contents.whereType<Barline>();
+    return barlines.isNotEmpty ? barlines.first : Barline(BarLineTypes.regular);
   }
 }
 

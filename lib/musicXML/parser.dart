@@ -1,10 +1,8 @@
 import 'dart:io';
 import 'dart:ui';
-
-import 'package:music_notes_2/graphics/render_functions/staff.dart';
 import 'package:uuid/uuid.dart';
 import 'package:xml/xml.dart';
-
+import '../graphics/render/staff.dart';
 import 'data.dart';
 
 const uuid = Uuid();

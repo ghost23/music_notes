@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:music_notes_2/graphics/layouting/rules/layout_rule.dart';
 
 import '../generated/glyph_bboxes.dart';
 import '../generated/glyph_definitions.dart';
@@ -10,7 +9,6 @@ sealed class Element {
 
   Offset pointOfOrigin;
   Paint paint;
-  List<LayoutRule> influencers = [];
 
   Rect get boundingBox;
 }
@@ -63,7 +61,6 @@ class GlyphElement extends Element {
   @override
   Rect get boundingBox {
     final bbox = glyphBBoxes[glyph];
-    Rect result = Rect.fromLTRB(bbox!.southWest.dx, bbox.northEast.dy + 2, bbox.northEast.dx, bbox.southWest.dy + 2);
-    return result;
+    return Rect.fromPoints(bbox!.northEast, bbox.southWest);
   }
 }

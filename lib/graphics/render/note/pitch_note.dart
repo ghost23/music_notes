@@ -4,7 +4,7 @@ import '../../../musicXML/data.dart';
 import '../../generated/engraving_defaults.dart';
 import '../../generated/glyph_advance_widths.dart';
 import '../../generated/glyph_anchors.dart';
-import '../../graphics_model/note.dart';
+import '../../graphics_model/__note.dart';
 import '../../notes.dart';
 import '../beam.dart';
 import '../drawing_context.dart';

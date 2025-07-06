@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:music_notes_2/graphics/graphics_model/canvas_primitives.dart';
-import 'package:music_notes_2/graphics/graphics_model/glyph.dart';
+import 'package:music_notes_2/graphics/graphics_model/__glyph.dart';
 
 import '../generated/glyph_advance_widths.dart';
 import '../generated/glyph_anchors.dart';
 import '../generated/glyph_bboxes.dart';
 import '../generated/glyph_definitions.dart';
-import 'common.dart';
 import 'drawing_context.dart';
 
 /// Advances the width of the glyphes
@@ -49,7 +48,6 @@ GlyphGeometry paintGlyph(DrawingContext drawC, Glyph glyph, {double yOffset = 0,
 GlyphElement createGlyphElement(double staffHeight, Glyph glyph, Offset position) {
   return GlyphElement(
     position,
-    getLineSpacing(staffHeight),
     TextStyle(
       fontFamily: 'Bravura',
       fontSize: staffHeight,

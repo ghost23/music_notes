@@ -125,7 +125,7 @@ Rect calculateColumnAlignment(DrawingContext drawC, Iterable<PitchNoteRenderMeas
   measure.contents.forEachIndexed((index, element) {
     if (currentColumnPointer >= grid.length && element.runtimeType != Backup && element.runtimeType != Barline) {
       throw FormatException(
-          'currentColumnPointer can only point beyond end of grid length, if next element is Backup or Barline. But was: ${element.runtimeType.toString()}');
+          'currentColumnPointer can only point beyond end of grid length if next element is Backup or Barline. But was: ${element.runtimeType.toString()}');
     } else if (currentColumnPointer < grid.length) {
       currentColumn = grid[currentColumnPointer];
     }

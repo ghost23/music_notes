@@ -1,5 +1,5 @@
 import 'dart:ui';
 
-import 'glyph.dart';
+import '__glyph.dart';
 
 typedef NoteGeometry = ({Rect boundingBox, GlyphGeometry noteHead});

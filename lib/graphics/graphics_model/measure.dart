@@ -1,6 +1,5 @@
-import 'dart:ui' show Rect;
-
-import 'package:music_notes_2/graphics/graphics_model/canvas_primitives.dart';
+import 'dart:ui' show Offset, Rect;
+import './canvas_primitives.dart' show GroupElement, Element;
 
 typedef MeasureAttributesGeometry = ({Rect boundingBox});
 
@@ -24,7 +23,8 @@ class MeasureElement extends GroupElement {
 }
 
 class MeasureGrid extends GroupElement {
-  MeasureGrid(super.pointOfOrigin, [super.elements]) : columns = GroupElement(pointOfOrigin);
+  MeasureGrid(Offset super.pointOfOrigin, [List<GroupElement> super.columns = const []]);
 
-  GroupElement columns;
+  List<GroupElement> get columns => elements.whereType<GroupElement>().toList();
+  set columns(List<GroupElement> newList) => elements = newList;
 }
