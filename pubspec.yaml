@@ -23,15 +23,15 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  xml: ^6.5.0
+  xml: ^7.0.1
   collection: ^1.18.0
   uuid: ^4.3.3
 
 dev_dependencies:
-  flutter_lints: ^5.0.0
+  flutter_lints: ^6.0.0
   flutter_test:
     sdk: flutter
-  lints: ^5.0.0
+  lints: ^6.1.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
