@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:music_notes_2/graphics/graphics_model/canvas_primitives.dart';
+import 'package:music_notes_2/graphics/graphics_model/styling.dart';
+import 'package:music_notes_2/graphics/graphics_model/transform.dart';
 import 'package:music_notes_2/graphics/graphics_model/__glyph.dart';
 
 import '../generated/glyph_advance_widths.dart';
@@ -45,17 +47,12 @@ GlyphGeometry paintGlyph(DrawingContext drawC, Glyph glyph, {double yOffset = 0,
   return geom;
 }
 
-GlyphElement createGlyphElement(double staffHeight, Glyph glyph, Offset position) {
-  return GlyphElement(
-    position,
-    TextStyle(
-      fontFamily: 'Bravura',
-      fontSize: staffHeight,
-      height: 1,
-      color: Colors.black,
-    ),
-    glyph,
-  );
-}
+/// Builds a [GlyphElement] carrying the SMUFL glyph identity, its staff-space
+/// placement, and scale-free presentational styling. No pixel font size is
+/// stored — the renderer (WP2) derives the glyph size from staff-space + the
+/// render scaling measure.
+GlyphElement createGlyphElement(Glyph glyph, Offset position,
+        {Styling styling = Styling.inherit}) =>
+    GlyphElement(NodeTransform(translation: position), glyph, styling: styling);
 
 double calculateGlyphWidth(DrawingContext drawC, Glyph glyph) => glyphAdvanceWidths[glyph]! * drawC.lS;

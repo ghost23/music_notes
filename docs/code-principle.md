@@ -1,0 +1,9 @@
+# Code and Design principles
+
+- We prefer functional programming over using classes. That doesn't mean we should not use classes at all. We can (and have to) to specify model structures with classes. But we don't want to include data manipulation logic in classes. We rather have separate functions for that. Sometimes we need to have some methods in classes. For instance, for copying a class instance, we might use a method in the class. Also, using class methods to compute derived data that reside purely in that class is also OK.
+- We want code structures that are easy to test. That means we avoid building functions or classes that have too many side effects like importing data from other places. We rather pass all the data we need to functions or classes.
+- We value code reuse. Before implementing a new function or class, we should check if there is already a similar one that we can reuse, or which we can reuse through extending.
+- Before implementing bigger systems that are not core to what we try to achieve, we should check if there is a package on pub.dev that already implements what we need.
+- We don't like dependency injection because it makes code hard to follow.
+- We don't introduce our own Dart annotations. It is OK to use existing ones, though.
+- We like Dart exceptions. Rather than a function returning a null value when something does not work as expected, we throw an exception.

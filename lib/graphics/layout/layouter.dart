@@ -1,37 +1,41 @@
-import 'package:music_notes_2/graphics/graphics_model/measure.dart';
-
 import '../../musicXML/data.dart';
-import '../graphics_model/canvas_primitives.dart';
+import '../graphics_model/canvas_primitives.dart' show GroupElement;
+import '../graphics_model/semantic/structural.dart'
+    show ColumnElement, MeasureElement;
+import '../graphics_model/transform.dart' show NodeTransform;
 import 'layouting_context.dart';
 
 GroupElement layoutScorePart(Part part, LayoutingContext context) {
-  GroupElement partElement = GroupElement(context.drawPos, const []);
+  GroupElement partElement = GroupElement(NodeTransform(translation: context.drawPos), const []);
 
   for (Measure measure in part.measures) {
     context.currentMeasure = measure;
-    final measureElement = buildMeasureElement(measure, partElement, context);
+    buildMeasureElement(measure, partElement, context);
   }
 
   return partElement;
 }
 
+/// Builds a [MeasureElement] for [measure] under [partElement].
+///
+/// Skeleton (WP3 will drive real layout): constructs one [ColumnElement] per
+/// division slot (plus an attributes group when the measure carries an
+/// `Attributes` change), using only the structural taxonomy from WP1-S3.
 MeasureElement buildMeasureElement(Measure measure, GroupElement partElement, LayoutingContext context) {
-  MeasureElement measureElement = MeasureElement(partElement.pointOfOrigin);
-  if (measure.attributes != null) {
-    measureElement.attributesColumn = GroupElement(measureElement.pointOfOrigin);
-  }
+  final origin = NodeTransform(translation: partElement.pointOfOrigin);
+
   final columnNumber = calculateColumnNumber(measure, context);
-  measureElement.noteGrid = MeasureGrid(
-      measureElement.pointOfOrigin,
-      List.generate(
-          columnNumber,
-              (index) => GroupElement(measureElement.pointOfOrigin), growable: false
-      )
+  final columns = List<ColumnElement>.generate(
+    columnNumber,
+    (_) => ColumnElement(origin),
+    growable: false,
   );
-  return measureElement;
+
+  final GroupElement? attributes =
+      measure.attributes != null ? GroupElement(origin) : null;
+
+  return MeasureElement(origin, columns, attributes);
 }
-
-
 
 int calculateColumnNumber(Measure measure, LayoutingContext context) {
   final columnsOnFourFour = context.latestAttributes.divisions! * 4;
