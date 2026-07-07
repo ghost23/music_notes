@@ -29,7 +29,7 @@ ${Object.keys(glyphNames).map(convertGlyphToDartField).join('')}
 ${glyphNamesDart}
 `
 
-    await fs.writeFile('./lib/notes/generated/glyph_definitions.dart', glyphSourceCode);
+    await fs.writeFile('./lib/graphics/generated/glyph_definitions.dart', glyphSourceCode);
 
 
 
@@ -74,7 +74,7 @@ ${glyphRangeEnumDart}
 ${glyphRangeDataDart}
 `
 
-    await fs.writeFile('./lib/notes/generated/glyph_range_definitions.dart', glyphRangeSourceCode);
+    await fs.writeFile('./lib/graphics/generated/glyph_range_definitions.dart', glyphRangeSourceCode);
 
 
 
@@ -108,7 +108,7 @@ ${glyphClassEnumDart}
 ${glyphClassesDart}
 `
 
-    await fs.writeFile('./lib/notes/generated/glyph_classes_definitions.dart', glyphClassesSourceCode);
+    await fs.writeFile('./lib/graphics/generated/glyph_classes_definitions.dart', glyphClassesSourceCode);
 
 
 
@@ -155,7 +155,7 @@ ${glyphClassesDart}
 const engravingDefaults = EngravingDefaults();
 `
 
-    await fs.writeFile('./lib/notes/generated/engraving_defaults.dart', engravingDefaults);
+    await fs.writeFile('./lib/graphics/generated/engraving_defaults.dart', engravingDefaults);
 
 
     function convertAdvanceToDart(glyphKey, index, list) {
@@ -169,7 +169,7 @@ const glyphAdvanceWidths = <Glyph, double>{
 ${Object.keys(glyphNames).filter(g=>bravuraMetaData.glyphAdvanceWidths.hasOwnProperty(g)).map(convertAdvanceToDart).join('')}
 };`;
 
-    await fs.writeFile('./lib/notes/generated/glyph_advance_widths.dart', advanceToGlyphWidthsMap);
+    await fs.writeFile('./lib/graphics/generated/glyph_advance_widths.dart', advanceToGlyphWidthsMap);
 
     function convertBBoxDataToDart(glyphKey, index, list) {
         const bbox = bravuraMetaData.glyphBBoxes[glyphKey];
@@ -193,7 +193,7 @@ ${Object.keys(glyphNames).filter(g=>bravuraMetaData.glyphBBoxes.hasOwnProperty(g
 };
 `;
 
-    await fs.writeFile('./lib/notes/generated/glyph_bboxes.dart', glyphBBoxesDart);
+    await fs.writeFile('./lib/graphics/generated/glyph_bboxes.dart', glyphBBoxesDart);
 
     function convertAnchorsToDart(glyphKey, index, list) {
         const glyphAnchor = bravuraMetaData.glyphsWithAnchors[glyphKey];
@@ -203,92 +203,22 @@ ${Object.keys(glyphNames).filter(g=>bravuraMetaData.glyphBBoxes.hasOwnProperty(g
 
     const glyphsWithAnchorsDart =
 `import 'dart:ui';
+
+import '../glyph_anchor.dart';
 import 'glyph_definitions.dart';
 
-class GlyphAnchor {
-
-    const GlyphAnchor({
-        this.splitStemUpSE = const Offset(0,0),
-        this.splitStemUpSW = const Offset(0,0),
-        this.splitStemDownNE = const Offset(0,0),
-        this.splitStemDownNW = const Offset(0,0),
-        this.stemUpSE = const Offset(0,0),
-        this.stemDownNW = const Offset(0,0),
-        this.stemUpNW = const Offset(0,0),
-        this.stemDownSW = const Offset(0,0),
-        this.nominalWidth = const Offset(0,0),
-        this.numeralTop = const Offset(0,0),
-        this.numeralBottom = const Offset(0,0),
-        this.cutOutNE = const Offset(0,0),
-        this.cutOutSE = const Offset(0,0),
-        this.cutOutSW = const Offset(0,0),
-        this.cutOutNW = const Offset(0,0),
-        this.graceNoteSlashSW = const Offset(0,0),
-        this.graceNoteSlashNE = const Offset(0,0),
-        this.graceNoteSlashNW = const Offset(0,0),
-        this.graceNoteSlashSE = const Offset(0,0),
-        this.repeatOffset = const Offset(0,0),
-        this.noteheadOrigin = const Offset(0,0),
-        this.opticalCenter = const Offset(0,0)
-    }); 
-
-    final Offset splitStemUpSE;
-    final Offset splitStemUpSW;
-    final Offset splitStemDownNE;
-    final Offset splitStemDownNW;
-    final Offset stemUpSE;
-    final Offset stemDownNW;
-    final Offset stemUpNW;
-    final Offset stemDownSW;
-    final Offset nominalWidth;
-    final Offset numeralTop;
-    final Offset numeralBottom;
-    final Offset cutOutNE;
-    final Offset cutOutSE;
-    final Offset cutOutSW;
-    final Offset cutOutNW;
-    final Offset graceNoteSlashSW;
-    final Offset graceNoteSlashNE;
-    final Offset graceNoteSlashNW;
-    final Offset graceNoteSlashSE;
-    final Offset repeatOffset;
-    final Offset noteheadOrigin;
-    final Offset opticalCenter;
-
-    GlyphAnchor translate(Offset offset) {
-       return GlyphAnchor(
-           splitStemUpSE: this.splitStemUpSE + offset,
-           splitStemUpSW: this.splitStemUpSW + offset,
-           splitStemDownNE: this.splitStemDownNE + offset,
-           splitStemDownNW: this.splitStemDownNW + offset,
-           stemUpSE: this.stemUpSE + offset,
-           stemDownNW: this.stemDownNW + offset,
-           stemUpNW: this.stemUpNW + offset,
-           stemDownSW: this.stemDownSW + offset,
-           nominalWidth: this.nominalWidth + offset,
-           numeralTop: this.numeralTop + offset,
-           numeralBottom: this.numeralBottom + offset,
-           cutOutNE: this.cutOutNE + offset,
-           cutOutSE: this.cutOutSE + offset,
-           cutOutSW: this.cutOutSW + offset,
-           cutOutNW: this.cutOutNW + offset,
-           graceNoteSlashSW: this.graceNoteSlashSW + offset,
-           graceNoteSlashNE: this.graceNoteSlashNE + offset,
-           graceNoteSlashNW: this.graceNoteSlashNW + offset,
-           graceNoteSlashSE: this.graceNoteSlashSE + offset,
-           repeatOffset: this.repeatOffset + offset,
-           noteheadOrigin: this.noteheadOrigin + offset,
-           opticalCenter: this.opticalCenter + offset,
-       );
-    }
-}
+// The GlyphAnchor class is hand-written in lib/graphics/glyph_anchor.dart
+// (it carries the nullable-presence logic and the translate helper).
+// This generated file holds only the per-glyph anchor DATA map and imports
+// the class. Do not add hand-written logic here — it would be lost on the
+// next regeneration (see docs/code-principle.md).
 
 const glyphAnchors = <Glyph, GlyphAnchor>{
 ${Object.keys(glyphNames).filter(g=>bravuraMetaData.glyphsWithAnchors.hasOwnProperty(g)).map(convertAnchorsToDart).join('')}
 };
 `;
 
-    await fs.writeFile('./lib/notes/generated/glyph_anchors.dart', glyphsWithAnchorsDart);
+    await fs.writeFile('./lib/graphics/generated/glyph_anchors.dart', glyphsWithAnchorsDart);
 }
 
 exec();

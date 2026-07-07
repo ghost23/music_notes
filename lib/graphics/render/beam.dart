@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:music_notes_2/graphics/generated/engraving_defaults.dart';
 
 import '../../musicXML/data.dart';
-import '../generated/glyph_anchors.dart';
+import '../glyph_anchor.dart';
 import 'drawing_context.dart';
 
 class BeamPoint {

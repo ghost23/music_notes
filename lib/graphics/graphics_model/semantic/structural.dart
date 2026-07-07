@@ -1,5 +1,4 @@
 import '../canvas_primitives.dart' show Element, GroupElement;
-import '../transform.dart';
 
 /// Structural semantic nodes — the scene-graph skeleton that arranges the
 /// music vertically and horizontally (WP1-S3).

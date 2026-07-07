@@ -46,6 +46,11 @@ NoteGeometry paintPitchNote(DrawingContext drawC, PitchNote note, {bool noAdvanc
   boundingBox = noteHeadGeom.boundingBox;
 
   if (note.beams.isNotEmpty) {
+    // WP2-retirable shim: the beamed-notehead glyphs always define their
+    // stemUpSE / stemDownNW anchors, so the null-assertions below are safe.
+    // Once the renderer is a pure WP2 tree-walker, anchor reads go through the
+    // parameterised pattern (direct field access on `GlyphAnchor` +
+    // `absoluteAnchorOffset` for absolute resolution) instead.
     final noteAnchor = glyphAnchors[noteGlyph];
 
     final currentBeamPointMapForThisId = drawC.currentBeamPointsPerID[note.beams.first.id] ?? {};
@@ -81,29 +86,29 @@ NoteGeometry paintPitchNote(DrawingContext drawC, PitchNote note, {bool noAdvanc
         Offset startOffset, endOffset;
         if (start.drawAbove) {
           startOffset = drawC.globalToLocal(Offset(
-            start.notePosition.dx + start.noteAnchor.stemUpSE.dx * lS,
+            start.notePosition.dx + start.noteAnchor.stemUpSE!.dx * lS,
             start.notePosition.dy +
                 (drawC.staffHeight / 2) -
                 stemLength -
                 (engravingDefaults.beamThickness * lS) +
-                start.noteAnchor.stemUpSE.dy * lS,
+                start.noteAnchor.stemUpSE!.dy * lS,
           ));
           endOffset = drawC.globalToLocal(Offset(
-            end.notePosition.dx + end.noteAnchor.stemUpSE.dx * lS,
+            end.notePosition.dx + end.noteAnchor.stemUpSE!.dx * lS,
             end.notePosition.dy +
                 (drawC.staffHeight / 2) -
                 stemLength -
                 (engravingDefaults.beamThickness * lS) +
-                end.noteAnchor.stemUpSE.dy * lS,
+                end.noteAnchor.stemUpSE!.dy * lS,
           ));
         } else {
           startOffset = drawC.globalToLocal(Offset(
-            start.notePosition.dx + start.noteAnchor.stemDownNW.dx * lS,
-            start.notePosition.dy + (drawC.staffHeight / 2) + stemLength + start.noteAnchor.stemDownNW.dy * lS,
+            start.notePosition.dx + start.noteAnchor.stemDownNW!.dx * lS,
+            start.notePosition.dy + (drawC.staffHeight / 2) + stemLength + start.noteAnchor.stemDownNW!.dy * lS,
           ));
           endOffset = drawC.globalToLocal(Offset(
-            end.notePosition.dx + end.noteAnchor.stemDownNW.dx * lS,
-            end.notePosition.dy + (drawC.staffHeight / 2) + stemLength + end.noteAnchor.stemDownNW.dy * lS,
+            end.notePosition.dx + end.noteAnchor.stemDownNW!.dx * lS,
+            end.notePosition.dy + (drawC.staffHeight / 2) + stemLength + end.noteAnchor.stemDownNW!.dy * lS,
           ));
         }
 
@@ -113,39 +118,39 @@ NoteGeometry paintPitchNote(DrawingContext drawC, PitchNote note, {bool noAdvanc
           Offset stemOffsetStart, stemOffsetEnd;
           if (beamPoint.drawAbove) {
             stemOffsetStart = drawC.globalToLocal(Offset(
-              beamPoint.notePosition.dx + beamPoint.noteAnchor.stemUpSE.dx * lS,
-              beamPoint.notePosition.dy + (drawC.staffHeight / 2) + beamPoint.noteAnchor.stemUpSE.dy * lS,
+              beamPoint.notePosition.dx + beamPoint.noteAnchor.stemUpSE!.dx * lS,
+              beamPoint.notePosition.dy + (drawC.staffHeight / 2) + beamPoint.noteAnchor.stemUpSE!.dy * lS,
             ));
 
             final startOffsetGlobal = drawC.localToGlobal(startOffset);
             final endOffsetGlobal = drawC.localToGlobal(endOffset);
 
             double stemOffsetYEnd =
-                ((beamPoint.notePosition.dx + beamPoint.noteAnchor.stemUpSE.dx * lS) - startOffsetGlobal.dx) *
+                ((beamPoint.notePosition.dx + beamPoint.noteAnchor.stemUpSE!.dx * lS) - startOffsetGlobal.dx) *
                         ((endOffsetGlobal.dy - startOffsetGlobal.dy) / (endOffsetGlobal.dx - startOffsetGlobal.dx)) +
                     startOffsetGlobal.dy;
 
             stemOffsetEnd = drawC.globalToLocal(Offset(
-              beamPoint.notePosition.dx + beamPoint.noteAnchor.stemUpSE.dx * lS,
+              beamPoint.notePosition.dx + beamPoint.noteAnchor.stemUpSE!.dx * lS,
               stemOffsetYEnd,
             ));
           } else {
             stemOffsetStart = drawC.globalToLocal(Offset(
-              beamPoint.notePosition.dx + beamPoint.noteAnchor.stemDownNW.dx * lS,
-              beamPoint.notePosition.dy + (drawC.staffHeight / 2) + beamPoint.noteAnchor.stemDownNW.dy * lS,
+              beamPoint.notePosition.dx + beamPoint.noteAnchor.stemDownNW!.dx * lS,
+              beamPoint.notePosition.dy + (drawC.staffHeight / 2) + beamPoint.noteAnchor.stemDownNW!.dy * lS,
             ));
 
             final startOffsetGlobal = drawC.localToGlobal(startOffset);
             final endOffsetGlobal = drawC.localToGlobal(endOffset);
 
             double stemOffsetYEnd =
-                ((beamPoint.notePosition.dx + beamPoint.noteAnchor.stemDownNW.dx * lS) - startOffsetGlobal.dx) *
+                ((beamPoint.notePosition.dx + beamPoint.noteAnchor.stemDownNW!.dx * lS) - startOffsetGlobal.dx) *
                         ((endOffsetGlobal.dy - startOffsetGlobal.dy) / (endOffsetGlobal.dx - startOffsetGlobal.dx)) +
                     startOffsetGlobal.dy +
                     engravingDefaults.beamThickness * lS;
 
             stemOffsetEnd = drawC.globalToLocal(Offset(
-              beamPoint.notePosition.dx + beamPoint.noteAnchor.stemDownNW.dx * lS,
+              beamPoint.notePosition.dx + beamPoint.noteAnchor.stemDownNW!.dx * lS,
               stemOffsetYEnd,
             ));
           }

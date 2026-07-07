@@ -1,5 +1,12 @@
+import 'dart:ui' show Offset;
+
+import 'package:flutter/painting.dart' show MatrixUtils;
+import 'package:vector_math/vector_math_64.dart' show Matrix4;
+
 import '../generated/glyph_advance_widths.dart' show glyphAdvanceWidths;
 import '../generated/glyph_definitions.dart' show Glyph;
+import '../graphics_model/canvas_primitives.dart' show GlyphElement;
+import 'geometry.dart' show absoluteTransform;
 
 /// Parameterised per-glyph metadata readers (WP1-S3).
 ///
@@ -12,23 +19,24 @@ import '../generated/glyph_definitions.dart' show Glyph;
 /// (see `semantic.dart`); this library owns only the per-glyph *geometry*
 /// readers.
 ///
-/// ## What lives here (decided in WP1-S3)
+/// ## What lives here (decided in WP1-S3 / WP1-S4)
 ///
 /// **Advance width** is surfaced here in **WP1** — alongside the other
 /// parameterised per-glyph metadata readers — rather than deferred to WP5,
 /// so a copy of advance-width data can never sneak onto a node or get passed
-/// around as a raw value. The other per-glyph readers join this library as
-/// later stories need them:
+/// around as a raw value. The other per-glyph readers live here too:
 /// - **Bounding box** is today exposed as the S1 *local* getter
 ///   `GlyphElement.localBoundingBox` (the primitive layer's own extent). A
 ///   parameterised bbox reader can be added here when a WP5/WP6 consumer needs
 ///   a node's bbox without going through the S1 getter; S1/S4 own any change
 ///   to that getter.
-/// - **Anchors** are converted to the parameterised pattern in **S4** (local
-///   lookup taking the anchor table as a parameter; absolute lookup composing
-///   ancestor transforms via `layout/geometry.dart`). They will live here or
-///   alongside `layout/geometry.dart` — S4 picks the final home; either way
-///   the contract (parameter, never a copy) is the same.
+/// - **Anchors** (WP1-S4): a glyph's anchors are read by **direct field
+///   access** on the `GlyphAnchor` record (the `glyphAnchors` table is passed
+///   as a parameter — the S4 testability rule), so there is no separate
+///   named-vocabulary type or dispatch. The one anchor-related free function
+///   here, [absoluteAnchorOffset], is a thin transform-composition util: it
+///   takes an already-resolved local anchor offset and composes it with the
+///   element's absolute transform (reusing S1's `absoluteTransform`).
 ///
 /// ## Advance width is a spacing *input*, not the spacing itself
 ///
@@ -62,4 +70,58 @@ double glyphAdvanceWidth(Glyph glyph, {Map<Glyph, double>? advanceWidths}) {
     );
   }
   return width;
+}
+
+// ----------------------------------------------------------------------
+// Transform-aware anchor resolution (WP1-S4)
+// ----------------------------------------------------------------------
+//
+// An anchor is a named point in a glyph's own coordinate space (staff-space
+// units). Its **local** offset is a static per-glyph fact: a builder resolves
+// it eagerly by reading the field directly off the `GlyphAnchor` record (the
+// `glyphAnchors` table is passed as a parameter — the S4 testability rule),
+// so there is no separate named-vocabulary type or dispatch here. Absence is
+// real: the `GlyphAnchor` fields are nullable (`null` = the glyph does not
+// define that anchor), and `Offset.zero` is a legitimate anchor position for
+// some glyphs — so a builder that needs an anchor reads the field and fails
+// fast (throw / assert) on `null` rather than treating zero as a sentinel.
+//
+// The only thing deferred for context-dependent elements (S5: slurs, beams,
+// ties) is the **absolute** position, because that depends on the target's
+// final transform — which is not known at build time. The deferred element
+// stores the already-resolved local offset plus a reference to the target
+// node; the WP3 pass driver builds an absolute-transform index, and a
+// resolver composes the target's indexed transform with the local offset.
+// `absoluteAnchorOffset` below is the thin composition step — it reuses S1's
+// `absoluteTransform` (no recomputation, no re-walk from the root).
+
+/// The **absolute** staff-space offset of a local [localOffset] on [element],
+/// composing ancestor transforms from S1.
+///
+/// This is the transform-composition step a context-dependent symbol's
+/// resolver (S5, WP6) uses to turn an already-resolved local anchor offset
+/// into an absolute attachment point: a stem attaches to a notehead's
+/// `stemUpSE`, a beam to stem tips, a slur to notehead edges — all in absolute
+/// coordinates once the notehead is placed.
+///
+/// [localOffset] is the anchor's offset in the glyph's own coordinate space
+/// (resolved by the caller via direct field access on `GlyphAnchor`, e.g.
+/// `glyphAnchors[glyph]!.stemUpSE!`). It is composed with [element]'s
+/// **absolute** transform, i.e. its own `NodeTransform` composed onto
+/// [parentAbsolute] — reusing S1's [absoluteTransform] free function, not
+/// duplicating the composition. Pass [parentAbsolute] top-down while walking
+/// the tree (the IR has no parent links by design); when omitted, [element] is
+/// treated as a root.
+///
+/// This deliberately takes a resolved `Offset`, not an anchor name + table:
+/// the local offset is a static per-glyph fact known at build time, so a
+/// builder resolves it once and a deferred element carries the `Offset`. The
+/// absolute-transform index that the resolver pairs it with is a WP3 concern.
+Offset absoluteAnchorOffset(
+  GlyphElement element,
+  Offset localOffset, {
+  Matrix4? parentAbsolute,
+}) {
+  final absolute = absoluteTransform(element, parentAbsolute: parentAbsolute);
+  return MatrixUtils.transformPoint(absolute, localOffset);
 }

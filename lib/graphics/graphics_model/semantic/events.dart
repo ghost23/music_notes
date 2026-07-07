@@ -1,5 +1,5 @@
 import '../canvas_primitives.dart'
-    show CompositeElement, Element, GlyphElement, GroupElement, LineElement;
+    show CompositeElement, Element, GlyphElement, LineElement;
 
 /// Event semantic nodes — the sounding symbols placed on the staff (WP1-S3).
 ///

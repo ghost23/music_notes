@@ -7,3 +7,4 @@
 - We don't like dependency injection because it makes code hard to follow.
 - We don't introduce our own Dart annotations. It is OK to use existing ones, though.
 - We like Dart exceptions. Rather than a function returning a null value when something does not work as expected, we throw an exception.
+- The `lib/.../generated/` directories (e.g. `lib/graphics/generated/`) hold **generated** Dart files produced by a script (`convertJsonToDart.mjs`). Never hand-edit those files: any change is silently overwritten on the next regeneration. Hand-written logic that the generated data depends on — a data class with methods, derived helpers, doc comments — lives in a **non-generated** file next to the generated folder, and the generated file only `import`s it. If the generator needs to reference that hand-written type, wire it up in the generator's template, not by editing the generated output by hand.

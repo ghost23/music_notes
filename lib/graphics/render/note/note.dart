@@ -5,6 +5,7 @@ import '../../generated/engraving_defaults.dart';
 import '../../generated/glyph_advance_widths.dart';
 import '../../generated/glyph_anchors.dart';
 import '../../generated/glyph_bboxes.dart';
+import '../../glyph_anchor.dart';
 import '../../notes.dart';
 import '../drawing_context.dart';
 

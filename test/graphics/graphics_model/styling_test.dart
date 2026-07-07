@@ -1,7 +1,6 @@
 import 'dart:ui' show Color, Offset, Path, Rect;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:music_notes_2/graphics/generated/engraving_defaults.dart';
 import 'package:music_notes_2/graphics/generated/glyph_definitions.dart';
 import 'package:music_notes_2/graphics/graphics_model/canvas_primitives.dart';
 import 'package:music_notes_2/graphics/graphics_model/styling.dart';

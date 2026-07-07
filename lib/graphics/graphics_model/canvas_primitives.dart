@@ -6,7 +6,6 @@ import 'transform.dart' show NodeTransform;
 import 'styling.dart' show Styling;
 import '../generated/glyph_bboxes.dart';
 import '../generated/glyph_definitions.dart';
-import '/graphics/generated/glyph_anchors.dart';
 
 /// Base class for the layout/render intermediate representation (WP1).
 ///
@@ -163,8 +162,6 @@ class GlyphElement extends Element {
   /// the render scaling measure, computed at render time; no pixel font size
   /// is stored here. Font family is also supplied at render time.
   Glyph glyph;
-
-  GlyphAnchor get anchor => glyphAnchors[glyph] ?? const GlyphAnchor();
 
   @override
   List<Element> get elements => const [];
