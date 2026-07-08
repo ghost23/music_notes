@@ -230,18 +230,33 @@ void main() {
     });
   });
 
-  group('context-dependent types are placeholders (S5/WP6)', () {
-    test('tie/slur/dynamic/direction are declared but carry no reference state yet', () {
+  group('context-dependent types hold cross-references (S5 mechanism, WP6 math)', () {
+    test('tie/slur/beam/dynamic/direction are CrossReferenceElements, unresolved by default', () {
       for (final node in [
+        BeamElement(const NodeTransform.identity()),
         TieElement(const NodeTransform.identity()),
         SlurElement(const NodeTransform.identity()),
         DynamicElement(const NodeTransform.identity()),
         DirectionElement(const NodeTransform.identity()),
       ]) {
-        expect(node, isA<GroupElement>());
+        expect(node, isA<CrossReferenceElement>());
+        expect(node, isA<GroupElement>()); // CrossReferenceElement is-a GroupElement
         expect(node, isNot(isA<CompositeElement>()));
-        expect(node.elements, isEmpty);
+        expect(node, isNot(isA<GlyphElement>()));
+        // S5: a freshly built cross-reference element is unresolved and carries
+        // an empty cross-reference list.
+        expect(node.isResolved, isFalse);
+        expect(node.crossReferences, isEmpty);
       }
+    });
+
+    test('an unresolved cross-reference element is inspectable without throwing (S5)', () {
+      // Reading geometry of an unresolved node returns tentative (current)
+      // values so a layout pass may inspect it for assessment — the getters do
+      // not throw. Unresolved geometry is refused only at the render boundary.
+      final slur = SlurElement(const NodeTransform.identity());
+      expect(slur.elements, isEmpty); // empty backing list, no throw
+      expect(slur.localBoundingBox, Rect.zero); // folds the empty list, no throw
     });
   });
 }

@@ -68,6 +68,8 @@ the IR end-to-end and removes the legacy single-pass coupling.
 The pass scheduler: build the layout tree from the data model, run passes until
 stable, expose the tree to rules. The spine for "setting one symbol affects
 another we already touched."
+Preliminary design (rule contract, settled-detection, convergence) in
+[`wp3/`](./wp3/README.md).
 
 **Note — absolute-transform/anchor index (cross-tree references).** IR nodes
 carry no parent link (by design; see WP1-S1/S5). Deferred elements (slurs,
@@ -158,6 +160,8 @@ context-dependent symbols (WP6) that justify the whole effort.
 - **Multi-staff vertical spacing**: fixed vs content-driven; brace/bracket
   grouping.
 - **Pass convergence**: how the multi-pass driver decides it has stabilised.
+  Preliminary design in [`wp3/`](./wp3/README.md) (rule postconditions +
+  catch-all collision validator; priority + bounded iteration still open).
 
 ## What to salvage from existing scaffolding
 
@@ -169,4 +173,4 @@ context-dependent symbols (WP6) that justify the whole effort.
 
 ## Code and design principles
 
-We adhere to the coding and design principles specified here: [code-principle.md](Code and Design prindicples)
+We adhere to the coding and design principles specified here: [Code and Design principles](code-principle.md)

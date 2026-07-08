@@ -26,7 +26,7 @@ on demand, as layout rules need them.
 | [S2](./S2-scale-free-model.md) | Scale-free IR: pixel units out, scale-free styling in | S1 |
 | [S3](./S3-element-taxonomy.md) | Semantic element taxonomy bounded to MusicXML vocabulary | S1 |
 | [S4](./S4-named-anchors.md) | Named, transform-aware anchors | S1, S3 |
-| [S5](./S5-deferred-references.md) | Deferred references for context-dependent elements | S3, S4 |
+| [S5](./S5-deferred-references.md) | Cross-references & the unresolved state | S3, S4 |
 | [S6](./S6-multi-staff-containers.md) | Multi-staff system container & vertical arrangement | S1, S3 |
 | [S7](./S7-contract-validation.md) | Contract-validation fixture (multi-staff) | S1–S6 |
 

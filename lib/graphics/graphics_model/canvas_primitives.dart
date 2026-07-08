@@ -33,6 +33,28 @@ sealed class Element {
   /// [Styling.inherit] ("unresolved; layout must resolve").
   Styling styling;
 
+  /// Whether this node's geometry is **finalised** (WP1-S5).
+  ///
+  /// `true` for the vast majority of nodes, which are resolved the moment they
+  /// are built. A node whose geometry depends on the final positions of other
+  /// elements is built with `isResolved = false` and flipped to `true` by a
+  /// later layout pass that mutates it in place. That includes:
+  /// - a **cross-reference element** (a slur/tie/beam/… — see
+  ///   `semantic/context_dependent.dart`) built before its targets are placed;
+  /// - **any other node** a builder leaves tentative — e.g. a beamed note's
+  ///   stem (`LineElement`) whose length cannot be finalised until the beam
+  ///   it joins is laid out. Deferral is not a property of a fixed set of
+  ///   types; any node can be in an unresolved state.
+  ///
+  /// The flag is **purely informational to the model**: reading a node's
+  /// [elements] or [localBoundingBox] while unresolved returns the node's
+  /// *current* (tentative) values — a layout pass may legitimately inspect
+  /// them for assessment, so the getters do **not** throw. The flag is
+  /// enforced only at the **render boundary** (WP2): the renderer refuses to
+  /// draw an unresolved node, so unresolved geometry never reaches the canvas.
+  /// The pass driver (WP3) likewise uses it to detect incomplete layout.
+  bool isResolved = true;
+
   /// Local bounding box, derived purely from this node's own fields.
   ///
   /// A node with [elements] folds their local boxes through their child

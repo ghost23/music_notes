@@ -55,7 +55,7 @@
 /// out of scope and is added by the WP5/WP6 rule that needs it. Most event and
 /// attribute types therefore carry **no** extra fields for now — the *type
 /// itself* is the contribution, giving WP4 selectors something to target and
-/// S5 deferred references something to attach to.
+/// S5 cross-references something to attach to.
 ///
 /// ## Glyph-knowledge contract (governing rule for the whole IR)
 ///
