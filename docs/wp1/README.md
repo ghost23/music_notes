@@ -32,18 +32,22 @@ on demand, as layout rules need them.
 
 Suggested order: S1 → S2 → S3 → S4 → S5 → S6 → S7. S7 is the capstone that
 proves the contract on a hand-built multi-staff example before any layout rules
-exist.
+exist. **All seven stories are complete** (S1–S7); the capstone fixture lives
+in [`test/support/wp1_contract_fixture.dart`](../../test/support/wp1_contract_fixture.dart)
+and its tests in [`test/graphics/wp1_contract_test.dart`](../../test/graphics/wp1_contract_test.dart).
 
-## Definition of done for WP1
+## Definition of done for WP1 — ✓ satisfied
 
-- A documented, unit-tested IR that can represent **one multi-staff line** of
+- ✓ A documented, unit-tested IR that can represent **one multi-staff line** of
   music as a pure-data scene graph in staff-space units.
-- Geometry covered by tests using hand-built fixtures: *local* extents may be
-  node getters; *absolute*/composed geometry, traversal and anchor resolution are
-  free functions.
-- No pixel values, pixel font sizing, or Flutter `Paint`/`TextStyle` anywhere in
-  the model. Scale-free presentational styling (stroke/fill color, staff-space
-  thickness; fill-vs-stroke intent derived from color presence) is permitted
-  (see [S2](./S2-scale-free-model.md)); the renderer has no styling defaults.
-- WP2 (render tree-walker) and WP3 (layout engine) can build against this
-  contract without further IR changes for the first milestone.
+- ✓ Geometry covered by tests using hand-built fixtures: *local* extents may be
+  node getters; *absolute*/composed geometry, traversal and anchor resolution
+  are free functions.
+- ✓ No pixel values, pixel font sizing, or Flutter `Paint`/`TextStyle` anywhere
+  in the model. Scale-free presentational styling (stroke/fill color,
+  staff-space thickness; fill-vs-stroke intent derived from color presence) is
+  permitted (see [S2](./S2-scale-free-model.md)); the renderer has no styling
+  defaults.
+- ✓ WP2 (render tree-walker) and WP3 (layout engine) can build against this
+  contract without further IR changes for the first milestone (proven by S7,
+  which consumes the contract as-is).
