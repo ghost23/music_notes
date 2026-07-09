@@ -32,22 +32,16 @@ Matrix4 absoluteTransform(Element node, {Matrix4? parentAbsolute}) {
 
 /// The absolute (transform-composed) bounding box of [node]'s subtree.
 ///
-/// For a **leaf** (empty [Element.elements]), this is the node's local box
-/// transformed into absolute space. For a node **with children** (a
-/// `GroupElement` or a `CompositeElement`), the children's absolute boxes are
-/// folded. This keys off [Element.elements] alone, so it treats open
-/// collections and fixed composites uniformly. When [parentAbsolute] is
-/// omitted, [node] is treated as a root.
+/// This composes the node's [localBoundingBox] — its full local extent,
+/// which for a composing node already folds its children's local boxes
+/// through their child transforms — with [node]'s absolute transform. It keys
+/// off [Element.localBoundingBox] (which itself keys off [Element.elements]),
+/// so open collections and fixed composites are treated uniformly. A node
+/// that carries **own geometry beyond its children** (e.g. a `StaffElement`'s
+/// 5-line region, WP1-S6) has that geometry in its [localBoundingBox], so it is
+/// reflected absolutely here too — not just the children. When
+/// [parentAbsolute] is omitted, [node] is treated as a root.
 Rect absoluteBoundingBox(Element node, {Matrix4? parentAbsolute}) {
   final absolute = absoluteTransform(node, parentAbsolute: parentAbsolute);
-
-  final children = node.elements;
-  if (children.isEmpty) {
-    return MatrixUtils.transformRect(absolute, node.localBoundingBox);
-  }
-
-  return children.fold(Rect.zero, (acc, child) {
-    final childBox = absoluteBoundingBox(child, parentAbsolute: absolute);
-    return acc == Rect.zero ? childBox : acc.expandToInclude(childBox);
-  });
+  return MatrixUtils.transformRect(absolute, node.localBoundingBox);
 }

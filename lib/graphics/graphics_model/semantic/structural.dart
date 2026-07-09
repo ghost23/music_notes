@@ -1,4 +1,36 @@
+import 'dart:ui' show Rect;
+
 import '../canvas_primitives.dart' show Element, GroupElement;
+
+/// The number of lines in a standard staff (SMUFL convention: 5 lines).
+const int staffLineCount = 5;
+
+/// The height (top line to bottom line) of a staff with [lineCount] lines, in
+/// staff-space units: `lineCount - 1`.
+///
+/// The staff lines sit at `y = 0, 1, …, lineCount - 1` in a staff's local
+/// space — the line spacing is 1 staff space *by definition* (it is the
+/// staff-space unit itself) — so the top line is at the local origin (`y = 0`)
+/// and the bottom line at `y = lineCount - 1`. A standard 5-line staff is thus
+/// `4` staff spaces tall (1 em = 4 staff spaces = 1 staff height), matching
+/// the legacy renderer's `paintStaffLines` (lines drawn at `lS * 0..4` where
+/// `lS` is one staff space).
+///
+/// This is a **derived** value — a function of the line count, not an
+/// independent fact — so the height and the line count cannot drift apart.
+/// It defaults to the standard [staffLineCount] (5); a [StaffElement] carries
+/// its own [StaffElement.lineCount] and derives its [StaffElement.staffLineRegion]
+/// via this function, so a non-standard line count (e.g. a 1-line or 6-line
+/// staff for percussion/tab) yields the correct region.
+///
+/// Throws [ArgumentError] if [lineCount] is less than 1 (a staff must have at
+/// least one line) — per the exceptions-over-null principle.
+double staffHeightInStaffSpaces([int lineCount = staffLineCount]) {
+  if (lineCount < 1) {
+    throw ArgumentError('A staff must have at least 1 line; got $lineCount.');
+  }
+  return (lineCount - 1).toDouble();
+}
 
 /// Structural semantic nodes — the scene-graph skeleton that arranges the
 /// music vertically and horizontally (WP1-S3).
@@ -13,9 +45,9 @@ import '../canvas_primitives.dart' show Element, GroupElement;
 ///                      └─ ColumnElement (× n)   ← simultaneous events
 ///
 /// The vertical-arrangement behaviour (how staves are stacked and spaced) is
-/// fleshed out in S6; this story only declares the nodes exist and carry
-/// minimal structural identity. See the taxonomy table in
-/// `docs/wp1/S3-element-taxonomy.md`.
+/// fleshed out in S6 via the free functions in `layout/system.dart`; this
+/// story (S3) only declares the nodes exist and carry minimal structural
+/// identity. See the taxonomy table in `docs/wp1/S3-element-taxonomy.md`.
 
 /// A rendered **system**: the top structural node holding one or more parts on
 /// a single line.
@@ -23,8 +55,9 @@ import '../canvas_primitives.dart' show Element, GroupElement;
 /// **Source:** `Score` — for the first milestone one [SystemElement] is built
 /// per score (one system per line); multi-system/page layout is WP7.
 /// **Composes:** [PartElement] children only.
-/// **Layout fields:** none for the first milestone; S6 adds vertical-
-/// arrangement fields (staff spacing, brace/bracket grouping).
+/// **Layout fields:** none for the first milestone; the system's vertical
+/// extent is computed from its staves' transforms by the free functions in
+/// `layout/system.dart` (S6). Brace/bracket grouping glyphs are a later WP.
 ///
 /// This is a **typed container**: the typed constructor and the [parts]
 /// accessor are compile-time-checked to hold only [PartElement] children. The
@@ -60,8 +93,9 @@ class SystemElement extends GroupElement {
 /// **Source:** `Part`.
 /// **Composes:** [StaffElement] children only (a multi-staff part owns one
 /// [StaffElement] per staff declared by `Attributes.staves`).
-/// **Layout fields:** none for the first milestone; S6 may add part-level
-/// grouping/brace metadata.
+/// **Layout fields:** none for the first milestone; the staves' vertical
+/// transforms are set by `arrangeStavesVertical` in `layout/system.dart` (S6).
+/// Part-level grouping/brace metadata is a later WP.
 ///
 /// This is a **typed container**: the typed constructor and the [staves]
 /// accessor are compile-time-checked to hold only [StaffElement] children.
@@ -102,6 +136,26 @@ class PartElement extends GroupElement {
 /// does not presuppose a particular nesting (so S6 is free to arrange staves
 /// without re-deriving the number from sibling position).
 ///
+/// ## Local origin & staff-line region (WP1-S6)
+///
+/// A staff node's **local origin** is its top line at `x = 0, y = 0`. The
+/// **staff-line region** — the vertical span of its [lineCount] staff lines —
+/// is `y ∈ [0, staffHeightInStaffSpaces(lineCount)]` (a standard 5-line staff:
+/// `[0, 4]` staff spaces; see [staffLineRegion]). A note's staff-relative Y
+/// therefore maps into system space purely through S1 transform composition:
+/// a note on the middle line sits at local `y = 2`, and composing the staff's
+/// (then the part's, then the system's) transform places it absolutely. No
+/// separate positioning mechanism is involved.
+///
+/// The staff-line region contributes to [localBoundingBox] so that a staff's
+/// own vertical extent is truthfully reported even before any content
+/// (measures/notes) is attached — which lets the system's total vertical
+/// extent be computed as a bounding box via S1's [absoluteBoundingBox]
+/// (see `layout/system.dart`). The region's *horizontal* extent is
+/// content-driven (the staff lines span the width of the music, owned by
+/// descendants), so [staffLineRegion] carries only the vertical span (width 0)
+/// and is unioned with descendants' boxes in [localBoundingBox].
+///
 /// This is a **typed container**: the typed constructor and the [measures]
 /// accessor are compile-time-checked to hold only [MeasureElement] children.
 /// The inherited mutable [GroupElement.elements] path is kept open for
@@ -112,14 +166,48 @@ class StaffElement extends GroupElement {
     super.transform,
     this.staffNumber, [
     List<MeasureElement> super.measures = const [],
-  ]);
+    this.lineCount = staffLineCount,
+  ]) : assert(lineCount >= 1, 'A staff must have at least 1 line; got $lineCount.');
 
   /// The 1-based MusicXML staff number this node represents.
   final int staffNumber;
 
+  /// The number of staff lines this staff has. Defaults to the SMUFL standard
+  /// [staffLineCount] (5); a non-standard count may be passed for a 1-line or
+  /// 6-line staff (e.g. percussion / tab). MusicXML expresses this via
+  /// `<staff-details><staff-lines>` (not yet parsed by the current parser; the
+  /// field is present so the staff's [staffLineRegion] is genuinely per-staff
+  /// rather than a global constant — see `docs/wp1/S6-multi-staff-containers.md`).
+  final int lineCount;
+
+  /// The vertical span of this staff's staff lines in local staff-space:
+  /// `Rect.fromLTWH(0, 0, 0, staffHeightInStaffSpaces(lineCount))` — top line
+  /// at the local origin (`y = 0`), bottom line at
+  /// `y = staffHeightInStaffSpaces(lineCount)` (a 5-line staff: `y = 4`).
+  ///
+  /// The width is 0 because the staff lines' *horizontal* extent is
+  /// content-driven (the lines span the width of the music, which is owned by
+  /// this staff's [MeasureElement] descendants); [localBoundingBox] unions this
+  /// region with the descendants' boxes to produce the staff's full local
+  /// extent. Reading this getter on an empty staff returns just the line span.
+  Rect get staffLineRegion =>
+      Rect.fromLTWH(0, 0, 0, staffHeightInStaffSpaces(lineCount));
+
   /// The measures on this staff, in order. The live list; appending a
   /// [MeasureElement] is type-checked at compile time.
   List<MeasureElement> get measures => super.elements as List<MeasureElement>;
+
+  /// The staff's local extent: the union of its 5-line [staffLineRegion] and
+  /// its descendants' folded boxes (S1's child-box fold). An empty staff
+  /// reports just the line span (`[0, 4]` staff spaces tall); a staff with
+  /// content widens/extends to include it.
+  @override
+  Rect get localBoundingBox {
+    final region = staffLineRegion;
+    final descendants = super.localBoundingBox; // GroupElement fold; Rect.zero if empty.
+    if (descendants == Rect.zero) return region;
+    return region.expandToInclude(descendants);
+  }
 
   @override
   set elements(List<Element> value) {
