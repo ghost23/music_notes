@@ -114,13 +114,6 @@ Accidentals accidentalFromNumericValue(int value, bool preferSharp) {
   }
 }
 
-class XPositionedMeasureContent {
-  const XPositionedMeasureContent({required this.xPosition, required this.measureContent});
-
-  final double xPosition;
-  final MeasureContent measureContent;
-}
-
 /// A data representation of almost anything - but mostly notes - that can be put on staves,
 /// like notes, accidentals, legers, articulation glyphs, etc.
 /// It is more a positional info object. Maybe we should not actually call it Note?!

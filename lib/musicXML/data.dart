@@ -1,6 +1,5 @@
 import 'dart:ui';
 import 'package:music_notes_2/graphics/notes.dart';
-import '../graphics/render/staff.dart';
 
 sealed class MusicDataElement {}
 
@@ -9,7 +8,7 @@ class Score extends MusicDataElement {
 
   final List<Part> parts;
 
-  get isEmpty => parts.isEmpty || parts.first.isEmpty;
+  bool get isEmpty => parts.isEmpty || parts.first.isEmpty;
 }
 
 class Part extends MusicDataElement {
@@ -17,7 +16,7 @@ class Part extends MusicDataElement {
 
   final List<Measure> measures;
 
-  get isEmpty => measures.isEmpty;
+  bool get isEmpty => measures.isEmpty;
 }
 
 class Measure extends MusicDataElement {
@@ -37,6 +36,24 @@ class Measure extends MusicDataElement {
 }
 
 class MeasureContent extends MusicDataElement {}
+
+/// The barline *style* vocabulary — a data-model concept.
+///
+/// This previously lived in the render layer (`render/staff.dart`); it was
+/// relocated into the data model as part of WP2-S1 so the kept parser and data
+/// model no longer import any render code. The legacy *drawing* of barlines
+/// was archived, not moved.
+enum BarLineTypes {
+  regular,
+  lightLight,
+  heavyHeavy,
+  heavyLight,
+  lightHeavy,
+  heavy,
+  dashed,
+  repeatRight,
+  repeatLeft
+}
 
 class Barline extends MeasureContent {
   Barline(this.barStyle);

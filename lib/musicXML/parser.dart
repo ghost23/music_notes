@@ -2,7 +2,6 @@ import 'dart:io';
 import 'dart:ui';
 import 'package:uuid/uuid.dart';
 import 'package:xml/xml.dart';
-import '../graphics/render/staff.dart';
 import 'data.dart';
 
 const uuid = Uuid();

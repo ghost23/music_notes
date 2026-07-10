@@ -1,19 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
-import 'package:xml/xml.dart';
 
-import 'graphics/music_line.dart';
-import 'musicXML/data.dart';
-import 'musicXML/parser.dart';
-
-Future<Score> loadXML() async {
-  final rawFile = await rootBundle.loadString('hanon-no1-stripped.musicxml');
-  final result = parseMusicXML(XmlDocument.parse(rawFile));
-  return result;
-}
-
-const double staffHeight = 36;
-
+/// Minimal placeholder entry point.
+///
+/// The legacy single-pass renderer (`MusicLine`) was removed in WP2-S1. The new
+/// layout→render pipeline is not wired up yet: WP2-S4 will replace this
+/// placeholder with a `CustomPainter` that renders the WP1 S7 contract fixture
+/// through the pure tree-walker, and WP3 will later feed real parsed scores.
 void main() {
   runApp(const MyApp());
 }
@@ -34,45 +26,14 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class MyHomePage extends StatefulWidget {
+class MyHomePage extends StatelessWidget {
   const MyHomePage({super.key});
 
   @override
-  MyHomePageState createState() => MyHomePageState();
-}
-
-class MyHomePageState extends State<MyHomePage> {
-  @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-
-    return Scaffold(
+    return const Scaffold(
       body: Center(
-        child: Container(
-            alignment: Alignment.center,
-            width: size.width - 40,
-            height: size.height - 40,
-            child: FutureBuilder<Score>(
-                future: loadXML(),
-                builder: (context, snapshot) {
-                  if (snapshot.hasData) {
-                    return MusicLine(
-                      options: MusicLineOptions(
-                        snapshot.data!,
-                        staffHeight,
-                        1,
-                      ),
-                    );
-                  } else if (snapshot.hasError) {
-                    return Text('Oh, this failed!\n${snapshot.error}');
-                  } else {
-                    return const SizedBox(
-                      width: 60,
-                      height: 60,
-                      child: CircularProgressIndicator(),
-                    );
-                  }
-                })),
+        child: Text('Layout engine not wired yet.'),
       ),
     );
   }

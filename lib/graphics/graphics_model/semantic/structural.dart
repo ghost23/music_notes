@@ -277,8 +277,8 @@ class MeasureElement extends GroupElement {
 /// grouping. Its MusicXML counterpart is the set of `MeasureContent` entries
 /// that share a division offset within a measure — derived from cumulative
 /// `Note.duration` / `Backup` / `Forward` against the `Attributes.divisions`
-/// resolution (see `render/measure.dart::createGridForMeasure` for the existing
-/// derivation). It is listed here so coverage is auditable.
+/// resolution (see `docs/legacy-render/measure.dart::createGridForMeasure`
+/// for the existing derivation, archived as WP5 source material). It is listed here so coverage is auditable.
 /// **Composes:** the simultaneous event elements ([PitchedNoteElement],
 /// [RestElement], `BarlineElement`, …).
 /// **Layout fields:** none for the first milestone; the division offset /

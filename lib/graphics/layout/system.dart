@@ -57,7 +57,8 @@ import 'geometry.dart' show absoluteBoundingBox;
 /// spaces.
 ///
 /// **Source:** the legacy `MusicLineState.initState` set
-/// `staffsSpacing = staffHeight * 2` (see `lib/graphics/music_line.dart`),
+/// `staffsSpacing = staffHeight * 2` (see the deleted legacy
+/// `lib/graphics/music_line.dart`, preserved in git history),
 /// i.e. a gap of two staff heights between the bottom line of one staff and
 /// the top line of the next. S6 keeps that value as the documented default so
 /// the first milestone's output matches the legacy renderer's spacing.

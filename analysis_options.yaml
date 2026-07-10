@@ -1,1 +1,10 @@
 include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  exclude:
+    # WP2-S1: archived legacy render code kept as reference-only reading
+    # material for WP5/WP6. It is not compiled or imported by anything under
+    # lib/ or test/; its stale import paths reflect its original location under
+    # lib/graphics/render/ and intentionally do not resolve. See
+    # docs/legacy-render/README.md.
+    - docs/legacy-render/**
