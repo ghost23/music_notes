@@ -123,20 +123,20 @@ This story closes both and drops the WP1→legacy adapter shims the walker used.
 
 ## Acceptance criteria
 
-- [ ] The renderer applies each node's full `NodeTransform` (translation, scale,
+- [x] The renderer applies each node's full `NodeTransform` (translation, scale,
       rotation) via `toMatrix4()`; a hand-built tree with nested scale + rotation
       draws children at the composed positions predicted by the transform math.
-- [ ] Reaching a node with `isResolved == false` during the walk **throws**;
+- [x] Reaching a node with `isResolved == false` during the walk **throws**;
       this is documented as the sole enforcement point of the WP1-S5 flag, and
       the model getters remain non-throwing while unresolved.
-- [ ] Leaves draw purely from their own IR geometry + resolved `Styling` + the
+- [x] Leaves draw purely from their own IR geometry + resolved `Styling` + the
       S2 scaling measure; containers apply their transform and recurse. No
       measurement/positioning code exists in `render/*`.
-- [ ] The "no styling defaults / throw on missing / fill-vs-stroke from color
+- [x] The "no styling defaults / throw on missing / fill-vs-stroke from color
       presence" contract holds, with fill+stroke handled (two-pass) or its
       single-pass simplification documented.
-- [ ] The WP1 legacy adapter shims (`pointOfOrigin`, and `boundingBox` if now
+- [x] The WP1 legacy adapter shims (`pointOfOrigin`, and `boundingBox` if now
       unused) are removed from `canvas_primitives.dart`, with no remaining
       references.
-- [ ] Unit tests cover the transform composition, the unresolved-refusal, and
+- [x] Unit tests cover the transform composition, the unresolved-refusal, and
       the styling cases; the full WP1 suite plus the render tests pass.

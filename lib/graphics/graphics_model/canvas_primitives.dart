@@ -74,16 +74,6 @@ sealed class Element {
   ///   named and the arity is codified, while the walk still sees a plain
   ///   ordered list.
   List<Element> get elements;
-
-  /// Adapter shim for legacy render code; delegates to [localBoundingBox].
-  /// To be removed in WP2.
-  Rect get boundingBox => localBoundingBox;
-
-  /// Adapter shim for legacy render/layout code; backed by [transform].
-  /// To be removed in WP2.
-  Offset get pointOfOrigin => transform.translation;
-  set pointOfOrigin(Offset value) =>
-      transform = transform.copyWith(translation: value);
 }
 
 /// The local bounding box of a node that composes children: each child's local

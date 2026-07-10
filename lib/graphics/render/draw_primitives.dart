@@ -5,7 +5,7 @@ import '/graphics/graphics_model/canvas_primitives.dart';
 import '/graphics/graphics_model/styling.dart';
 import 'render_scale.dart';
 
-/// Render-phase tree-walker (WP1-S2 → WP2-S2/S3).
+/// Render-phase tree-walker (WP2).
 ///
 /// Walks the IR scene graph of [Element]s and draws it, doing **no**
 /// measurement, positioning, or layout — every position, transform, anchor and
@@ -13,15 +13,44 @@ import 'render_scale.dart';
 /// the single render scaling measure [RenderScale] (pixels per staff space),
 /// which converts the IR's staff-space units to pixels.
 ///
+/// ## The single public entry point
+///
+/// [drawElement] is the sole entry point. It applies the render scale once,
+/// then walks the tree. There are no per-type public draw functions: the sealed
+/// `Element` switch inside [_drawNode] dispatches every leaf and container
+/// uniformly, so a per-type wrapper would only duplicate the scale/transform
+/// scaffolding this walker already applies.
+///
 /// ## Unit-conversion strategy: scale-the-canvas-once
 ///
-/// Each public entry point applies [RenderScale.pixelsPerStaffSpace] as a
-/// single root `canvas.scale(...)` (via [_withScale]) and then walks the tree
-/// in **staff-space units**: translations, leaf geometry and stroke widths are
-/// all staff-space, and a glyph is drawn at the staff-space em font size
+/// [drawElement] applies [RenderScale.pixelsPerStaffSpace] as a single root
+/// `canvas.scale(...)` and then walks the tree in **staff-space units**:
+/// per-node transforms, leaf geometry and stroke widths are all staff-space,
+/// and a glyph is drawn at the staff-space em font size
 /// [RenderScale.staffSpacesPerEm] (`4`). The root scale turns them into pixels
 /// in one place, so the walker itself is unit-agnostic. See [RenderScale] for
 /// the rationale vs per-leaf conversion.
+///
+/// ## Full per-node transform
+///
+/// Each node's complete [NodeTransform] — translation **+ per-axis scale +
+/// rotation** — is applied via [NodeTransform.toMatrix4] (already encoded in
+/// SRT order: scale → rotate → translate) fed to `canvas.transform`. A
+/// container's transform therefore applies to its whole subtree through canvas
+/// state. The renderer never derives translate/rotate/scale by hand; it feeds
+/// the IR's matrix to the canvas so the render convention is identical to the
+/// IR convention by construction.
+///
+/// ## Unresolved-node refusal (WP1-S5 render boundary)
+///
+/// A node whose geometry is not finalised (`isResolved == false`) must never
+/// reach the canvas. [_drawNode] **throws** the moment it reaches such a node,
+/// before applying its transform or drawing anything. This is the **sole
+/// enforcement point** of the S5 flag: the IR model getters stay inspectable
+/// while unresolved (they return tentative values, never throw) so layout
+/// passes can assess them — only this render boundary turns the flag into a
+/// hard gate. Resolution itself (turning an unresolved slur/beam into
+/// primitives) is WP6; here the renderer only refuses.
 ///
 /// ## Styling ownership
 ///
@@ -30,27 +59,114 @@ import 'render_scale.dart';
 /// required scale-free property is missing (no stroke or fill color, or a
 /// stroke without a staff-space [Styling.strokeWidth]). Fill-vs-stroke intent
 /// is derived from color presence ([Styling.hasStroke] / [Styling.hasFill]).
-///
-/// The per-node `scale`/`rotation` of a [NodeTransform] and the
-/// unresolved-node refusal (`isResolved == false` must not be drawn) are added
-/// in S3.
+/// When both fill and stroke are set, the leaf is drawn in **two passes** —
+/// fill then stroke — so the outline sits on top of the fill.
 
-/// Applies [renderScale] as a single root canvas scale around [command].
-void _withScale(Canvas canvas, RenderScale renderScale, VoidCallback command) {
+/// Draws [element] and its subtree.
+///
+/// The sole public render entry point: applies the [renderScale] as a single
+/// root canvas scale, then walks the tree in staff-space units. Leaves paint
+/// from their own IR geometry + resolved [Styling]; containers apply their
+/// full transform and recurse into [Element.elements] in draw order.
+void drawElement(Canvas canvas, Element element, RenderScale renderScale) {
   canvas.save();
   canvas.scale(renderScale.pixelsPerStaffSpace);
-  command();
-  canvas.restore();
+  try {
+    _drawNode(canvas, element);
+  } finally {
+    canvas.restore();
+  }
 }
 
-/// Translates by [element]'s staff-space [Element.pointOfOrigin], draws via
-/// [command], then translates back. The root canvas scale (applied by the
-/// public entry point) converts the staff-space translation to pixels.
-void _drawTranslated(Canvas canvas, Element element, VoidCallback command) {
-  final origin = element.pointOfOrigin;
-  canvas.translate(origin.dx, origin.dy);
-  command();
-  canvas.translate(-origin.dx, -origin.dy);
+/// Walks one node in staff-space (the root canvas scale is already applied).
+///
+/// Applies the node's full [NodeTransform] via [NodeTransform.toMatrix4],
+/// dispatches on the sealed [Element] type (leaves paint; containers recurse),
+/// and refuses an unresolved node up front (WP1-S5). Save/restore is balanced
+/// even if a leaf draw throws.
+void _drawNode(Canvas canvas, Element element) {
+  if (!element.isResolved) {
+    throw StateError(
+      '${element.runtimeType} is unresolved (isResolved == false). Unresolved '
+      'geometry must never reach the render boundary; resolve it during layout '
+      '(see WP1-S5).',
+    );
+  }
+
+  final transform = element.transform.toMatrix4();
+  canvas.save();
+  canvas.transform(transform.storage);
+  try {
+    switch (element) {
+      case PathElement():
+        _drawPainted(
+          canvas,
+          element,
+          (Paint paint) => canvas.drawPath(element.path, paint),
+        );
+      case LineElement():
+        _drawPainted(
+          canvas,
+          element,
+          (Paint paint) =>
+              canvas.drawLine(element.startPoint, element.endPoint, paint),
+        );
+      case RectElement():
+        _drawPainted(canvas, element, (Paint paint) => canvas.drawRect(element.rect, paint));
+      case GlyphElement():
+        _drawGlyph(canvas, element);
+      case GroupElement():
+      case CompositeElement():
+        for (final child in element.elements) {
+          _drawNode(canvas, child);
+        }
+    }
+  } finally {
+    canvas.restore();
+  }
+}
+
+/// Draws a stroked/filled primitive's geometry in the passes its [Styling]
+/// requests — fill then stroke — via [drawGeometry]. Throws if the styling is
+/// unresolved or incomplete (see the file doc).
+void _drawPainted(
+  Canvas canvas,
+  Element element,
+  void Function(Paint paint) drawGeometry,
+) {
+  for (final paint in _paintPasses(element)) {
+    drawGeometry(paint);
+  }
+}
+
+/// Returns the [Paint] passes [element]'s resolved scale-free [Styling]
+/// requests: a fill pass when [Styling.hasFill], then a stroke pass when
+/// [Styling.hasStroke]. The model never constructs a `Paint`; this is the
+/// boundary where scale-free intent meets the canvas. Throws if no color is
+/// set, or if a stroke lacks a staff-space [Styling.strokeWidth] — the
+/// renderer has no defaults.
+List<Paint> _paintPasses(Element element) {
+  final styling = element.styling;
+  if (!styling.hasStroke && !styling.hasFill) {
+    throw StateError(
+      '${element.runtimeType} carries no stroke or fill color. Styling must '
+      'be resolved during layout; the renderer has no defaults.',
+    );
+  }
+
+  final passes = <Paint>[];
+  if (styling.hasFill) {
+    passes.add(Paint()
+      ..style = PaintingStyle.fill
+      ..color = styling.fillColor!);
+  }
+  if (styling.hasStroke) {
+    passes.add(Paint()
+      ..style = PaintingStyle.stroke
+      ..color = styling.strokeColor!
+      ..strokeWidth = _strokeWidthOrThrow(element, styling));
+  }
+  return passes;
 }
 
 /// Returns a staff-space [Styling.strokeWidth] or throws if the element is
@@ -68,47 +184,26 @@ double _strokeWidthOrThrow(Element element, Styling styling) {
   return strokeWidth;
 }
 
-/// Builds a [Paint] from [element]'s resolved scale-free [Styling]. The model
-/// never constructs a `Paint`; this is the boundary where scale-free intent
-/// meets the canvas. Throws if the styling is unresolved or incomplete — see
-/// the file doc.
-Paint _paintFor(Element element) {
-  final styling = element.styling;
-  if (!styling.hasStroke && !styling.hasFill) {
-    throw StateError(
-      '${element.runtimeType} carries no stroke or fill color. Styling must '
-      'be resolved during layout; the renderer has no defaults.',
-    );
-  }
-
-  // Intent is derived from color presence (Styling.hasStroke / hasFill).
-  // Flutter draws fill or stroke per call, not both; a real two-pass
-  // stroke+fill is left to WP2. For now, when both are set, the renderer fills
-  // (the more common case for music notation primitives like noteheads) and
-  // configures the stroke width so a stroke pass could follow.
-  if (styling.hasStroke && styling.hasFill) {
-    return Paint()
-      ..style = PaintingStyle.fill
-      ..color = styling.fillColor!
-      ..strokeWidth = _strokeWidthOrThrow(element, styling);
-  }
-  if (styling.hasStroke) {
-    return Paint()
-      ..style = PaintingStyle.stroke
-      ..color = styling.strokeColor!
-      ..strokeWidth = _strokeWidthOrThrow(element, styling);
-  }
-  // hasFill only.
-  return Paint()
-    ..style = PaintingStyle.fill
-    ..color = styling.fillColor!;
-}
-
-/// Builds a [TextStyle] for a glyph from its resolved [Styling]. Glyphs are
+/// Draws a glyph via [TextPainter] from its resolved [Styling]. Glyphs are
 /// filled, so a fill color is required and the renderer throws if it is
 /// missing. The font size is the staff-space em [RenderScale.staffSpacesPerEm]
 /// (`4`); the root canvas scale converts it to pixels (1 em = 4 staff spaces).
 /// Font family is a render-phase resource binding, not IR state.
+void _drawGlyph(Canvas canvas, GlyphElement element) {
+  final textPainter = TextPainter(
+    text: TextSpan(
+      text: glyphFontCodeMap[element.glyph],
+      style: _textStyleFor(element),
+    ),
+    textDirection: TextDirection.ltr,
+  );
+  textPainter.layout();
+  textPainter.paint(canvas, Offset.zero);
+  textPainter.dispose();
+}
+
+/// Builds a [TextStyle] for a glyph from its resolved [Styling]. Throws if the
+/// glyph carries no fill color — see [_drawGlyph].
 TextStyle _textStyleFor(GlyphElement element) {
   final color = element.styling.fillColor;
   if (color == null) {
@@ -123,91 +218,4 @@ TextStyle _textStyleFor(GlyphElement element) {
     height: 1,
     color: color,
   );
-}
-
-// --- Public entry points (apply the render scale once) ---------------------
-
-void drawPathElement(
-  Canvas canvas,
-  PathElement element,
-  RenderScale renderScale,
-) =>
-    _withScale(canvas, renderScale, () => _drawPath(canvas, element));
-
-void drawLineElement(
-  Canvas canvas,
-  LineElement element,
-  RenderScale renderScale,
-) =>
-    _withScale(canvas, renderScale, () => _drawLine(canvas, element));
-
-void drawRectElement(
-  Canvas canvas,
-  RectElement element,
-  RenderScale renderScale,
-) =>
-    _withScale(canvas, renderScale, () => _drawRect(canvas, element));
-
-void drawGlyphElement(
-  Canvas canvas,
-  GlyphElement element,
-  RenderScale renderScale,
-) =>
-    _withScale(canvas, renderScale, () => _drawGlyph(canvas, element));
-
-/// Draws [element] and its subtree. Leaves paint themselves; a container
-/// (a [GroupElement] collection or a [CompositeElement]) translates by its own
-/// origin and recurses into its [Element.elements] — so open collections and
-/// fixed composites are walked uniformly.
-void drawElement(
-  Canvas canvas,
-  Element element,
-  RenderScale renderScale,
-) =>
-    _withScale(canvas, renderScale, () => _drawElement(canvas, element));
-
-// --- Internal staff-space walkers (canvas already scaled) ------------------
-
-void _drawPath(Canvas canvas, PathElement element) => _drawTranslated(
-    canvas, element, () => canvas.drawPath(element.path, _paintFor(element)));
-
-void _drawLine(Canvas canvas, LineElement element) => _drawTranslated(canvas,
-    element, () => canvas.drawLine(element.startPoint, element.endPoint, _paintFor(element)));
-
-void _drawRect(Canvas canvas, RectElement element) => _drawTranslated(
-    canvas, element, () => canvas.drawRect(element.rect, _paintFor(element)));
-
-void _drawGlyph(Canvas canvas, GlyphElement element) {
-  _drawTranslated(canvas, element, () {
-    final textPainter = TextPainter(
-      text: TextSpan(
-        text: glyphFontCodeMap[element.glyph],
-        style: _textStyleFor(element),
-      ),
-      textDirection: TextDirection.ltr,
-    );
-    textPainter.layout();
-    textPainter.paint(canvas, Offset.zero);
-    textPainter.dispose();
-  });
-}
-
-void _drawElement(Canvas canvas, Element element) {
-  switch (element) {
-    case PathElement():
-      _drawPath(canvas, element);
-    case LineElement():
-      _drawLine(canvas, element);
-    case RectElement():
-      _drawRect(canvas, element);
-    case GlyphElement():
-      _drawGlyph(canvas, element);
-    case GroupElement():
-    case CompositeElement():
-      _drawTranslated(canvas, element, () {
-        for (final child in element.elements) {
-          _drawElement(canvas, child);
-        }
-      });
-  }
 }
