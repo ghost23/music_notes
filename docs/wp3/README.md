@@ -211,4 +211,4 @@ catch-all validator. Nothing new is persisted in the WP1 IR.
   correct default; when is per-subtree dirty-tracking worth the invalidation
   complexity? (Defer until profiled.)
 - **Diagnostics surface.** What shape do best-effort/non-convergence diagnostics
-  take, and how do they reach WP8's visual-regression harness?
+  take, and how do they reach the visual-regression harness (WP2-S5)?

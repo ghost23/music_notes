@@ -63,6 +63,12 @@ Broken into developer stories in [`wp1/`](./wp1/README.md).
 Strip all measurement/positioning out of `render/*`; the renderer consumes WP1's
 tree and only translates/draws. `draw_primitives.dart` is already close. Proves
 the IR end-to-end and removes the legacy single-pass coupling.
+Broken into developer stories in [`wp2/`](./wp2/README.md): legacy render
+cleanup (clean slate; archives WP5/WP6 source material to `docs/legacy-render/`),
+a single render scaling measure, the pure tree-walker (full transform + styling
++ unresolved refusal), a `CustomPaint` entry point that renders the WP1 S7
+fixture end-to-end, and the **visual-regression (golden) harness** — the
+"stand up early" half of the former WP8, merged here (see WP8 below).
 
 ### WP3 — Layout engine core (multi-pass driver)
 The pass scheduler: build the layout tree from the data model, run passes until
@@ -114,17 +120,27 @@ once notes are placed.
 Cross-measure spacing, line breaking, multi-system vertical spacing, page layout.
 (Note: multi-*staff* within a single system is in scope from WP1; this package is
 about multiple *systems* and pages.)
+Also absorbs the **full widget/app integration** tail of the former WP8 —
+responsive sizing, zoom, scroll, the multi-system UI — since that only becomes
+meaningful once real parsed scores (WP3) and multiple systems exist. The
+*minimal* `CustomPaint` surface is already delivered in WP2-S4.
 
-### WP8 — Integration & visual validation
-Widget / `CustomPaint` rewiring and a visual-regression harness (golden images),
-so layout-rule refinements don't silently break earlier results. Stand up early.
+### WP8 — Integration & visual validation (dissolved)
+**Merged; no longer a standalone package.** WP8 was two separable things and
+each moved to where it can actually be built:
+- the **visual-regression (golden) harness** ("stand up early, run throughout")
+  → **WP2-S5**, planted the moment there is renderable output (the WP1 S7
+  fixture). "Run throughout" is preserved: every later WP adds its own goldens
+  using that harness.
+- the **full widget/app integration** (responsive sizing, zoom, scroll,
+  multi-system UI) → **WP7**, since it needs real parsed scores and multiple
+  systems. The minimal `CustomPaint` surface is in **WP2-S4**.
 
 ## Suggested sequencing
 
 ```
-WP1  →  WP2  →  WP3  →  WP4  →  WP5  →  WP6
-                                            
-WP8 (stand up early, run throughout)        WP7 (last)
+WP1  →  WP2  →  WP3  →  WP4  →  WP5  →  WP6            WP7 (last)
+        └─ S5: golden harness stands up here, used by every WP after
 ```
 
 WP1 → WP2 first to prove the IR on a trivial example, then the engine (WP3),
