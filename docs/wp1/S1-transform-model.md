@@ -60,17 +60,17 @@ units throughout.
 
 ## Acceptance criteria
 
-- [ ] Every `Element` has a transform supporting translation, scale and rotation
+- [x] Every `Element` has a transform supporting translation, scale and rotation
       in staff-space units; the bare `pointOfOrigin`-only model is gone.
-- [ ] **Absolute**/transform-composition logic lives in free functions, not in
+- [x] **Absolute**/transform-composition logic lives in free functions, not in
       `Element` subclasses; a *local* bounding-box getter/method is permitted
       (pure derived data).
-- [ ] A node can report its **local** bounding box.
-- [ ] A free function returns the **absolute** bounding box of a subtree with
+- [x] A node can report its **local** bounding box.
+- [x] A free function returns the **absolute** bounding box of a subtree with
       nested transforms (translation + scale + rotation) composed correctly.
-- [ ] Unit tests cover: identity transform; nested translation; scale; rotation;
+- [x] Unit tests cover: identity transform; nested translation; scale; rotation;
       and a mixed nested case, each asserting expected staff-space coordinates.
-- [ ] A short doc comment defines the unit and the transform convention
+- [x] A short doc comment defines the unit and the transform convention
       (axis directions, rotation sign, order of operations).
-- [ ] Project compiles; existing render code still builds (adapter shim is
+- [x] Project compiles; existing render code still builds (adapter shim is
       acceptable and will be cleaned up in WP2).

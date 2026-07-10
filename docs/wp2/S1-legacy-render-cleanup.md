@@ -111,21 +111,21 @@ coupling snags make this more than a bulk delete:
 
 ## Acceptance criteria
 
-- [ ] `BarLineTypes` lives in the data model; **no** file under `lib/musicXML/`
+- [x] `BarLineTypes` lives in the data model; **no** file under `lib/musicXML/`
       or the WP1 `graphics_model/` / `layout/` imports anything from
       `lib/graphics/render/`.
-- [ ] The pure-legacy render files listed above are deleted from `lib/`.
-- [ ] `render/measure.dart`, `render/note/*` and `render/beam.dart` are moved to
+- [x] The pure-legacy render files listed above are deleted from `lib/`.
+- [x] `render/measure.dart`, `render/note/*` and `render/beam.dart` are moved to
       `docs/legacy-render/` with a `README.md` marking them old/unused/reference-
       only; nothing in `lib/` or `test/` imports them.
-- [ ] `notes.dart` retains its reference data and drops the render-only
+- [x] `notes.dart` retains its reference data and drops the render-only
       `XPositionedMeasureContent` helper; the data model still compiles against
       it.
-- [ ] `layout/layouting_context.dart` and `layout/layouter.dart` are removed;
+- [x] `layout/layouting_context.dart` and `layout/layouter.dart` are removed;
       the untouched WP4 seeds (`layout_definition.dart`,
       `processing/load_layouting_rules.dart`) still compile.
-- [ ] `test/goldens/main_demo.png` is deleted.
-- [ ] `main.dart` compiles and launches with a minimal placeholder (no reference
+- [x] `test/goldens/main_demo.png` is deleted.
+- [x] `main.dart` compiles and launches with a minimal placeholder (no reference
       to the deleted `MusicLine`).
-- [ ] `flutter analyze` is clean and the full WP1 test suite (S1–S7) plus the
+- [x] `flutter analyze` is clean and the full WP1 test suite (S1–S7) plus the
       `draw_primitives` shim test pass.

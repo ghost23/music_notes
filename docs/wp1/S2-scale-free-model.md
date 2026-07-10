@@ -112,27 +112,27 @@ Two points were left open in the original scope and are now pinned:
 
 ## Acceptance criteria
 
-- [ ] No `Element` subclass references `Paint`, `TextStyle`, or any **pixel**
+- [x] No `Element` subclass references `Paint`, `TextStyle`, or any **pixel**
       font size or **pixel** stroke width.
-- [ ] Scale-free presentational styling is **retained**: an element can carry a
+- [x] Scale-free presentational styling is **retained**: an element can carry a
       stroke and/or fill **color** and a staff-space stroke **thickness**;
       fill-vs-stroke intent is **derived from color presence**
       (`Styling.hasStroke` / `Styling.hasFill`). A `null` color means
       *unresolved* (the layout must resolve it), **not** a renderer default.
-- [ ] `GlyphElement` carries the SMUFL glyph identity, its staff-space
+- [x] `GlyphElement` carries the SMUFL glyph identity, its staff-space
       transform/placement, and its scale-free presentational properties (e.g.
       color) — but no `TextStyle` and no pixel font size.
-- [ ] Any retained stroke/thickness values are documented as staff-space units
+- [x] Any retained stroke/thickness values are documented as staff-space units
       and (where applicable) sourced from `EngravingDefaults`.
-- [ ] A short doc note records the boundary: scale-free styling (color,
+- [x] A short doc note records the boundary: scale-free styling (color,
       staff-space thickness) lives in the IR and is resolved during layout; the
       renderer has **no styling defaults** and throws on unresolved styling — it
       only turns the resolved color/thickness + the scaling measure into concrete
       `Paint`/`TextStyle`.
-- [ ] Project compiles; a temporary render-side shim may supply the
+- [x] Project compiles; a temporary render-side shim may supply the
       scale-dependent pixel conversion (font size, stroke width) from a scaling
       measure until WP2, but supplies **no** styling defaults.
-- [ ] A test (or assertion/grep in review) confirms the model layer has no
+- [x] A test (or assertion/grep in review) confirms the model layer has no
       dependency on `Paint`/`TextStyle` and no pixel-bearing values — while the
       color/thickness fields and derived-intent helpers are present. A test
       pins the no-defaults renderer contract (throws on missing styling).
