@@ -16,7 +16,7 @@ grow into real music.
 ## Background
 
 WP1-S7 built `buildWp1ContractFixture()` in
-[`test/support/wp1_contract_fixture.dart`](../../test/support/wp1_contract_fixture.dart):
+[`lib/graphics/wp1_contract_fixture.dart`](../../lib/graphics/wp1_contract_fixture.dart):
 a 2-staff system (system → part → staves → measures → columns) with clefs,
 notes (notehead + stem placed via S4 anchors), a time signature, an accidental,
 an eighth-note flag, a rest, and a deferred slur with a fake resolver. It was
@@ -87,17 +87,22 @@ consumes for now.
 
 ## Acceptance criteria
 
-- [ ] A minimal `CustomPainter` renders an arbitrary IR root at a given scaling
+- [x] A minimal `CustomPainter` renders an arbitrary IR root at a given scaling
       measure by delegating to the S3 tree-walker, with correct `shouldRepaint`
       and no layout logic of its own.
-- [ ] `main.dart` builds the WP1 S7 fixture, resolves its deferred slur, and
+- [x] `main.dart` builds the WP1 S7 fixture, resolves its deferred slur, and
       displays it through the new painter; the legacy `MusicLine` path and the S1
       placeholder are gone.
-- [ ] An automated test renders the (resolved) S7 fixture through the painter /
+- [x] An automated test renders the (resolved) S7 fixture through the painter /
       tree-walker to a recording canvas and completes without throwing;
       (optionally) the rasterised output is non-empty.
-- [ ] The test imports the shared `buildWp1ContractFixture()` rather than
+- [x] The test imports the shared `buildWp1ContractFixture()` rather than
       duplicating a hand-built tree.
-- [ ] Running the app draws the multi-staff fixture (manual/visual check);
+- [x] Running the app draws the multi-staff fixture (manual/visual check);
       `flutter analyze` is clean and the full WP1 + WP2 test suite passes.
-- [ ] WP2's "definition of done" in [`README.md`](./README.md) is satisfied.
+- [x] WP2's "definition of done" in [`README.md`](./README.md) is satisfied —
+      i.e. the S4-owned DoD bullets (pure tree-walker; legacy renderer gone;
+      full transform + one scaling measure + no styling defaults + unresolved
+      refusal; S7 fixture renders end-to-end as an automated render test). The
+      remaining DoD bullet — the visual-regression (golden) harness with a first
+      committed golden — is the next story, [S5](./S5-visual-regression-harness.md).

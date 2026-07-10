@@ -16,7 +16,7 @@ import 'package:music_notes_2/graphics/layout/glyph_metadata.dart'
 import 'package:music_notes_2/graphics/layout/system.dart'
     show staffAbsoluteOrigin, systemVerticalExtent;
 
-import '../support/wp1_contract_fixture.dart';
+import 'package:music_notes_2/graphics/wp1_contract_fixture.dart';
 
 /// WP1-S7 — the contract-validation capstone.
 ///
