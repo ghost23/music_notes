@@ -95,19 +95,39 @@ story does that threading and pins the measure's definition.
 - **Exceptions over silent fallback.** A non-positive or NaN scaling measure is
   a programmer error — throw, consistent with `NodeTransform`'s NaN guard.
 
+## Decision: unit-conversion strategy
+
+**Adopted: strategy 2 — scale-the-canvas-once.** Each public draw entry point
+applies `RenderScale.pixelsPerStaffSpace` as a single root `canvas.scale(...)`
+and then walks the tree in staff-space units (translations, leaf geometry,
+stroke widths, and a glyph font size of `RenderScale.staffSpacesPerEm` = 4 are
+all staff-space; the root scale turns them into pixels). This matches the
+story's recommendation: the walker is unit-agnostic, and all staff-space
+geometry — including `Path`/`Rect`/line endpoints, which a per-leaf strategy
+would have to scale piecemeal — is converted in one place. The measure's
+*definition* (pixels per staff space) is identical either way.
+
+The rejected per-leaf strategy would yield the same pixels but re-introduce
+pixel arithmetic at every leaf. The one caveat with scaling the canvas — glyph
+rasterisation under a large canvas scale — is judged non-blocking for the
+vector (OpenType) SMUFL font; should glyph quality degrade, the localized fix
+is to render each glyph at `RenderScale.pixelEmFontSize` with the canvas scale
+reset around it, without changing the measure's definition. Documented in
+`lib/graphics/render/render_scale.dart` and `draw_primitives.dart`.
+
 ## Acceptance criteria
 
-- [ ] The render scaling measure is defined and documented as **pixels per staff
+- [x] The render scaling measure is defined and documented as **pixels per staff
       space**, with the "1 em = 4 staff spaces" relationship stated once.
-- [ ] The `_defaultPixelsPerStaffSpace` placeholder and the default `scale`
+- [x] The `_defaultPixelsPerStaffSpace` placeholder and the default `scale`
       arguments are gone; every draw entry point **requires** the measure
       (explicit parameter or passed value type — no global, no DI).
-- [ ] The staff-space → pixel conversions live in named helpers; the "× 4" em
+- [x] The staff-space → pixel conversions live in named helpers; the "× 4" em
       factor is not duplicated.
-- [ ] The chosen unit-conversion strategy (per-leaf vs scale-the-canvas-once) is
+- [x] The chosen unit-conversion strategy (per-leaf vs scale-the-canvas-once) is
       documented in the story/code, and the two glyph/stroke conversions produce
       pixel values that are correct functions of the measure.
-- [ ] A non-positive / NaN measure throws.
-- [ ] Unit tests assert the conversions scale correctly with the measure; the
+- [x] A non-positive / NaN measure throws.
+- [x] Unit tests assert the conversions scale correctly with the measure; the
       existing `draw_primitives` "no styling defaults" tests still pass.
-- [ ] Project compiles; WP1 suite passes.
+- [x] Project compiles; WP1 suite passes.

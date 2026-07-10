@@ -106,6 +106,20 @@ This story closes both and drops the WP1→legacy adapter shims the walker used.
   advance widths, no `staffYPos`, no column/measure spacing, no engraving-default
   lookups for *positioning* — only glyph-code/font/paint lookups needed to draw
   what the IR already positioned.
+- **Collapse to a single public entry point.** `drawElement` already dispatches
+  exhaustively over the sealed `Element` and applies the same `_withScale` +
+  private walker the per-type functions do; `drawPathElement` / `drawLineElement`
+  / `drawRectElement` / `drawGlyphElement` are therefore pure redundancy (each is
+  just `_withScale` wrapping a private walker that `drawElement` already calls).
+  Collapse them: keep only the private staff-space walkers (`_drawPath`/
+  `_drawLine`/`_drawRect`/`_drawGlyph`) called from the `drawElement` switch,
+  and drop the four public wrappers. `drawElement` becomes the **sole** public
+  entry point. This removes duplicated `_withScale` calls and — more importantly —
+  means the new full-transform walk and the unresolved-node refusal need enforcing
+  at **one** place, not five. Update the only external caller,
+  `draw_primitives_test.dart`, to call `drawElement` instead of the per-type
+  functions (which also exercises the real dispatch path instead of bypassing
+  it).
 
 ## Acceptance criteria
 
