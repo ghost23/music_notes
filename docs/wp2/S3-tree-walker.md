@@ -60,6 +60,17 @@ This story closes both and drops the WP1→legacy adapter shims the walker used.
   `LineElement`/`RectElement`/`PathElement` → their own geometry with a `Paint`
   built from resolved `Styling`. No widths, offsets, or positions are computed
   here.
+- **Glyph baseline registration (the SMUFL ↔ IR coordinate seam).** A SMUFL
+  glyph is registered to the **font baseline** (its origin `y = 0` sits on the
+  baseline — a notehead's centre, a gClef's G line), but `TextPainter.paint`
+  places the text box's *top-left* at the given offset. The renderer therefore
+  shifts each glyph up by the measured box-top→baseline distance so its SMUFL
+  origin lands on the node origin; drawing at the raw offset would drop every
+  glyph down by the font ascent (the original "strangely misaligned" symptom).
+  This is the render half of the single y-up(SMUFL) ↔ y-down(IR) seam — the
+  generator negates y for all glyph metadata, the renderer aligns the baseline,
+  and nothing in between touches SMUFL's y-up convention (see the resolved
+  "Vertical axis & the SMUFL coordinate seam" decision in `rewrite-plan.md`).
 - **Reaffirm the styling contract.** Keep "the renderer has no defaults; throw on
   a missing required scale-free property; fill-vs-stroke derived from color
   presence." Where both fill and stroke are set, implement the intended
@@ -132,6 +143,9 @@ This story closes both and drops the WP1→legacy adapter shims the walker used.
 - [x] Leaves draw purely from their own IR geometry + resolved `Styling` + the
       S2 scaling measure; containers apply their transform and recurse. No
       measurement/positioning code exists in `render/*`.
+- [x] Each glyph is drawn **baseline-registered** — its SMUFL origin lands on
+      the node origin — so a glyph node placed at its SMUFL staff position draws
+      correctly (the y-up ↔ y-down seam is closed on the render side).
 - [x] The "no styling defaults / throw on missing / fill-vs-stroke from color
       presence" contract holds, with fill+stroke handled (two-pass) or its
       single-pass simplification documented.

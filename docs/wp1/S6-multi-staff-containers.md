@@ -83,6 +83,11 @@ MusicXML expresses this via `Attributes.staves` and per-staff `Clef`s, and each
   line extent even before any content is attached — and the system's extent is
   computable as a bounding box via S1's `absoluteBoundingBox`. The region's
   *horizontal* extent is content-driven (width 0, owned by descendants).
+  (**WP2 addition:** the region describes where the lines *are*; the drawable
+  staff-line primitives were later added as a **deferred** `StaffElement.staffLines`
+  role — one `LineElement` per line, whose length is resolved from the content
+  width, exactly because the horizontal extent is content-driven. See
+  [`../wp1/S7-contract-validation.md`](./S7-contract-validation.md).)
 - **Multi-staff arrangement free functions** (`lib/graphics/layout/system.dart`)
   — the S6 contribution:
   - `arrangeStavesVertical(part, {interStaffDistance})` sets each staff's

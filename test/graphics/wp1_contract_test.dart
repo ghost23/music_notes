@@ -18,17 +18,18 @@ import 'package:music_notes_2/graphics/layout/system.dart'
 
 import 'package:music_notes_2/graphics/wp1_contract_fixture.dart';
 
-/// WP1-S7 — the contract-validation capstone.
+/// WP1 — the contract-validation capstone (now a musically-faithful grand
+/// staff; see `docs/wp1/test.png`).
 ///
-/// These tests drive the shared [buildWp1ContractFixture] (a hand-built
-/// multi-staff scene graph) and assert that S1–S6 compose into a usable
-/// contract: per-staff absolute positions (S6), the system's total bounding
-/// box (S1), a stem placed via a notehead anchor resolving to the expected
-/// absolute point (S4), a deferred slur discovered by traversal and resolved
-/// by a fake resolver (S5), and scale-free styling throughout (S2).
+/// These tests drive the shared [buildWp1ContractFixture] and assert that S1–S6
+/// compose into a usable contract: per-staff absolute positions (S6), the
+/// system's composed bounding box (S1), a stem placed via a notehead anchor
+/// (S4), the **deferred staff lines** discovered by traversal and completed by
+/// [resolveStaffLines] (S5), the taxonomy (S3), and scale-free styling (S2).
 ///
-/// All expected values are hand-computed and documented in the fixture's
-/// library doc; the arithmetic is restated in the assertions' comments.
+/// Expected geometry is derived from the fixture's own handles/constants where
+/// possible (so the assertions track the builder), with the hand-computed
+/// values documented in comments.
 void main() {
   /// Matches a [Rect] field-by-field within [epsilon] (glyph bboxes use real
   /// SMUFL decimals, so a tiny fp tolerance is used).
@@ -51,8 +52,8 @@ void main() {
         'an offset close to $expected within $epsilon',
       );
 
-  /// The fixture under test, built once per test (each test gets a fresh tree
-  /// so the slur-resolution test can mutate without affecting others).
+  /// A fresh fixture per test (so the staff-line-resolution test can mutate
+  /// without affecting others).
   Wp1ContractFixture build() => buildWp1ContractFixture();
 
   group('S6: per-staff absolute vertical positions', () {
@@ -62,243 +63,209 @@ void main() {
       // staff1 dy = 0; staff2 dy = 12 (default inter-staff distance).
       expect(staffAbsoluteOrigin(f.staff1, index), offsetCloseTo(Offset.zero));
       expect(staffAbsoluteOrigin(f.staff2, index),
-          offsetCloseTo(const Offset(0, 12)));
+          offsetCloseTo(const Offset(0, expectedStaff2Dy)));
     });
 
     test('note & rest absolute origins compose through the staff transforms', () {
       final f = build();
       final index = absoluteTransformIndex(f.system);
-      // noteA (5,2) on staff1 (dy=0) → (5,2); noteB (8,1) → (8,1);
-      // noteC (5,3) on staff2 (dy=12) → (5,15);
-      // eighthNote (1,2) in staff1 m2 (dx=12) → (13,2);
-      // fullRest (1,2) in staff2 m2 (dy=12, dx=12) → (13,14).
-      expect(MatrixUtils.transformPoint(index[f.noteA]!, Offset.zero),
-          offsetCloseTo(const Offset(5, 2)));
-      expect(MatrixUtils.transformPoint(index[f.noteB]!, Offset.zero),
-          offsetCloseTo(const Offset(8, 1)));
-      expect(MatrixUtils.transformPoint(index[f.noteC]!, Offset.zero),
-          offsetCloseTo(const Offset(5, 15)));
-      expect(MatrixUtils.transformPoint(index[f.eighthNote]!, Offset.zero),
-          offsetCloseTo(const Offset(13, 2)));
-      expect(MatrixUtils.transformPoint(index[f.fullRest]!, Offset.zero),
-          offsetCloseTo(const Offset(13, 14)));
+      Offset abs(Element e) =>
+          MatrixUtils.transformPoint(index[e]!, Offset.zero);
+      // halfNoteG (5.5,3) on staff1 (dy=0); halfNoteA (8.5,2.5);
+      // trebleWholeNote (2,0) in staff1 m2 (dx=11) → (13,0);
+      // bassWholeNote (5.5,2) on staff2 (dy=12) → (5.5,14);
+      // wholeRest (2.5,1) in staff2 m2 (dx=11, dy=12) → (13.5,13).
+      expect(abs(f.halfNoteG), offsetCloseTo(const Offset(5.5, 3)));
+      expect(abs(f.halfNoteA), offsetCloseTo(const Offset(8.5, 2.5)));
+      expect(abs(f.trebleWholeNote), offsetCloseTo(const Offset(13, 0)));
+      expect(abs(f.bassWholeNote), offsetCloseTo(const Offset(5.5, 14)));
+      expect(abs(f.wholeRest), offsetCloseTo(const Offset(13.5, 13)));
     });
   });
 
-  group('S1: the system\'s total bounding box (composed geometry)', () {
-    test('matches the hand-computed rect (real glyph bboxes + line regions)', () {
+  group('S1: the system\'s composed bounding box', () {
+    test('matches the hand-computed rect (real glyph bboxes + staff lines)', () {
       final f = build();
+      resolveAllStaffLines(f); // rendered state: staff lines span the content
       final box = absoluteBoundingBox(f.system);
-      // top  = −4.392 (gClef NE.y at staff1);
-      // bottom = 16   (staff2 line region: 12 + 4);
-      // left = −0.02  (fClef SW.x at staff2);
-      // right = 15.236 (eighth-note flag right edge: 13 + 1.18 + 1.056).
-      expect(box,
-          rectCloseTo(const Rect.fromLTRB(-0.02, -4.392, 15.236, 16)));
+      // left = 0      (staff lines start at the staff origin x = 0);
+      // top  = −1.392 (gClef NE.y −4.392 at its origin y = 3);
+      // right = 16.4  (final barline thick segment: m2 dx 11 + 5 + separation 0.4);
+      // bottom = 16   (staff2 line region: dy 12 + 4).
+      expect(box, rectCloseTo(const Rect.fromLTRB(0, -1.392, 16.4, 16)));
     });
 
     test('systemVerticalExtent agrees with the bounding-box height', () {
       final f = build();
-      // height = 16 − (−4.392) = 20.392
-      expect(systemVerticalExtent(f.system), 20.392);
-      expect(systemVerticalExtent(f.system), absoluteBoundingBox(f.system).height);
-    });
-
-    test('the bbox is unchanged by slur resolution (the line fits inside)', () {
-      final f = build();
-      final before = absoluteBoundingBox(f.system);
-      final index = absoluteTransformIndex(f.system);
-      fakeResolveSlur(f.slur, index);
-      final after = absoluteBoundingBox(f.system);
-      expect(after, rectCloseTo(before));
+      resolveAllStaffLines(f);
+      expect(systemVerticalExtent(f.system),
+          absoluteBoundingBox(f.system).height);
+      // height = 16 − (−1.392) = 17.392
+      expect(systemVerticalExtent(f.system), closeTo(17.392, 1e-9));
     });
   });
 
   group('S4: a stem placed via a notehead anchor', () {
-    test('the notehead\'s stemUpSE anchor resolves to the expected absolute point', () {
+    test('the half note\'s stemUpSE anchor resolves to the expected absolute point',
+        () {
       final f = build();
       final index = absoluteTransformIndex(f.system);
-      // noteA absolute origin (5,2); stemUpSE local (1.18, −0.168);
-      // → absolute (5+1.18, 2−0.168) = (6.18, 1.832).
+      // halfNoteG absolute origin (5.5,3); stemUpSE local (1.18,−0.168)
+      // → absolute (6.68, 2.832).
       final anchorAbs = absoluteAnchorOffset(
-        f.noteheadA,
-        noteheadBlackStemUpSe,
-        parentAbsolute: index[f.noteA],
+        f.halfNoteG.notehead,
+        noteheadHalfStemUpSe,
+        parentAbsolute: index[f.halfNoteG],
       );
-      expect(anchorAbs, offsetCloseTo(expectedNoteheadAStemUpSeAbsolute));
+      expect(anchorAbs, offsetCloseTo(const Offset(6.68, 2.832)));
     });
 
-    test('the stem\'s start point lands exactly on that anchor', () {
+    test('the stem\'s start lands on that anchor and it extends up by stemLength',
+        () {
       final f = build();
       final index = absoluteTransformIndex(f.system);
-      // The stem is a LineElement child of noteA at identity; its startPoint
-      // IS the anchor offset. Composed with noteA's absolute transform it
-      // must equal the anchor's absolute position — proving attachment.
-      final stemAbs = index[f.stemA]!;
-      final stemStartAbs =
-          MatrixUtils.transformPoint(stemAbs, f.stemA.startPoint);
-      expect(stemStartAbs, offsetCloseTo(expectedNoteheadAStemUpSeAbsolute));
-      // And the stem extends upward by stemLength (3) from the anchor.
-      final stemEndAbs =
-          MatrixUtils.transformPoint(stemAbs, f.stemA.endPoint);
-      expect(stemEndAbs,
-          offsetCloseTo(const Offset(6.18, 1.832 - stemLength)));
-    });
-
-    test('note B\'s stemUpSE anchor resolves to its expected absolute point', () {
-      final f = build();
-      final index = absoluteTransformIndex(f.system);
-      // noteB (8,1) + stemUpSE (1.18, −0.168) = (9.18, 0.832).
-      final anchorAbs = absoluteAnchorOffset(
-        f.noteheadB,
-        noteheadBlackStemUpSe,
-        parentAbsolute: index[f.noteB],
-      );
-      expect(anchorAbs, offsetCloseTo(expectedNoteheadBStemUpSeAbsolute));
+      final stemAbs = index[f.halfNoteGStem]!;
+      final startAbs =
+          MatrixUtils.transformPoint(stemAbs, f.halfNoteGStem.startPoint);
+      final endAbs =
+          MatrixUtils.transformPoint(stemAbs, f.halfNoteGStem.endPoint);
+      // Start == the notehead's stemUpSE absolute (proves attachment).
+      expect(startAbs, offsetCloseTo(const Offset(6.68, 2.832)));
+      // End is stemLength (3.5) up (−y) from the anchor.
+      expect(endAbs, offsetCloseTo(const Offset(6.68, 2.832 - stemLength)));
     });
   });
 
-  group('S4 (second anchor): an eighth-note flag placed via flag.stemUpNW', () {
-    test('the flag\'s stemUpNW anchor coincides with the stem top', () {
+  group('S3: taxonomy (clefs, time signatures, notes, rest, barlines)', () {
+    test('each staff\'s first measure carries a clef and a 4/4 time signature',
+        () {
       final f = build();
-      final index = absoluteTransformIndex(f.system);
-      // The eighth note (13,2); stem top in note-local space = stemUpSE +
-      // (0, −3) = (1.18, −3.168); absolute stem top = (14.18, −1.168).
-      // The flag is placed so its stemUpNW (0, 0.04) sits at that stem top;
-      // resolving the flag\'s stemUpNW to absolute must give the same point.
-      final flagAnchorAbs = absoluteAnchorOffset(
-        f.eighthNoteFlag,
-        flag8thUpStemUpNw,
-        parentAbsolute: index[f.eighthNote],
-      );
-      expect(flagAnchorAbs, offsetCloseTo(expectedEighthStemTopAbsolute));
-    });
-
-    test('the eighth note\'s stem ends exactly at the flag anchor', () {
-      final f = build();
-      final index = absoluteTransformIndex(f.system);
-      final stem = f.eighthNote.stem!;
-      final stemEndAbs = MatrixUtils.transformPoint(index[stem]!, stem.endPoint);
-      expect(stemEndAbs, offsetCloseTo(expectedEighthStemTopAbsolute));
-    });
-  });
-
-  group('S3: extended taxonomy (time signature, eighth note, rest, accidental)', () {
-    test('each staff\'s first measure carries a 4/4 time signature', () {
-      final f = build();
+      expect(f.trebleClef.glyph.glyph, Glyph.gClef);
+      expect(f.bassClef.glyph.glyph, Glyph.fClef);
       for (final ts in [f.timeSignature1, f.timeSignature2]) {
         expect(ts, isA<TimeSignatureElement>());
         expect(ts.beats.glyph, Glyph.timeSig4);
         expect(ts.beatType.glyph, Glyph.timeSig4);
-        // A time signature is a fixed composite of exactly two numeral roles.
         expect(ts.elements, [ts.beats, ts.beatType]);
       }
     });
 
-    test('the eighth note is a notehead + stem + flag composite', () {
+    test('whole notes and a whole rest use the right glyphs', () {
       final f = build();
-      expect(f.eighthNote.notehead.glyph, Glyph.noteheadBlack);
-      expect(f.eighthNote.stem, isNotNull);
-      expect(f.eighthNoteFlag.glyph, Glyph.flag8thUp);
-      // Draw order: notehead → stem → flag (see PitchedNoteElement.elements).
-      expect(f.eighthNote.elements, contains(f.eighthNote.notehead));
-      expect(f.eighthNote.elements, contains(f.eighthNote.stem));
-      expect(f.eighthNote.elements, contains(f.eighthNoteFlag));
+      expect(f.trebleWholeNote.notehead.glyph, Glyph.noteheadWhole);
+      expect(f.trebleWholeNote.stem, isNull); // whole notes are stemless
+      expect(f.bassWholeNote.notehead.glyph, Glyph.noteheadWhole);
+      expect(f.wholeRest, isA<RestElement>());
+      expect(f.wholeRest.glyph.glyph, Glyph.restWhole);
+      expect(f.wholeRest.elements, [f.wholeRest.glyph]);
     });
 
-    test('the second measure of staff2 holds a full (whole) rest', () {
+    test('the sharped half note carries a sharp accidental drawn before the head',
+        () {
       final f = build();
-      expect(f.fullRest, isA<RestElement>());
-      expect(f.fullRest.glyph.glyph, Glyph.restWhole);
-      expect(f.fullRest.elements, [f.fullRest.glyph]);
+      expect(f.halfNoteA.accidental, same(f.halfNoteASharp));
+      expect(f.halfNoteASharp.glyph, Glyph.accidentalSharp);
+      expect(f.halfNoteA.elements.indexOf(f.halfNoteASharp),
+          lessThan(f.halfNoteA.elements.indexOf(f.halfNoteA.notehead)));
     });
 
-    test('note B carries a sharp accidental as a named role', () {
+    test('each measure is closed by a barline; the last is a final barline', () {
       final f = build();
-      expect(f.noteB.accidental, same(f.noteBAccidental));
-      expect(f.noteBAccidental.glyph, Glyph.accidentalSharp);
-      // The accidental is drawn before the notehead (draw order).
-      expect(f.noteB.elements.indexOf(f.noteBAccidental),
-          lessThan(f.noteB.elements.indexOf(f.noteheadB)));
+      expect(f.barlines.length, 4);
+      expect(f.barlines, everyElement(isA<BarlineElement>()));
+      // Every measure carries its trailing barline role.
+      for (final staff in [f.staff1, f.staff2]) {
+        expect(staff.measures.first.barline, isNotNull);
+        expect(staff.measures.last.barline, isNotNull);
+      }
+      // A regular barline is a single (thin) segment; a final barline composes
+      // two (thin + thick) segments.
+      expect(f.staff1.measures.first.barline!.elements.length, 1);
+      expect(f.staff1.measures.last.barline!.elements.length, 2);
     });
 
     test('each staff has two measures; measure2 is offset to the right', () {
       final f = build();
       expect(f.staff1.measures.length, 2);
       expect(f.staff2.measures.length, 2);
-      // measure2 translation.dx = 12 (to the right of measure1\'s content).
       expect(f.staff1.measures.last.transform.translation.dx, measure2Dx);
       expect(f.staff2.measures.last.transform.translation.dx, measure2Dx);
     });
   });
 
-  group('S5: a deferred slur discovered and resolved by a fake resolver', () {
-    test('the slur is the only unresolved node before resolution', () {
+  group('S5: deferred staff lines discovered and resolved', () {
+    test('both staves\' staff lines are the only unresolved nodes before resolution',
+        () {
       final f = build();
-      expect(unresolvedElements(f.system).toList(), [f.slur]);
-      expect(f.slur.isResolved, isFalse);
-      expect(f.slur.elements, isEmpty); // inspectable while unresolved
+      // Pre-order: staff1.staffLines then staff2.staffLines.
+      expect(unresolvedElements(f.system).toList(),
+          [f.staff1.staffLines, f.staff2.staffLines]);
+      expect(f.staff1.staffLines!.isResolved, isFalse);
+      expect(f.staff1.staffLines!.elements, isEmpty); // inspectable while unresolved
     });
 
-    test('fakeResolveSlur draws a line between the two anchor absolutes', () {
+    test('resolveStaffLines fills in one line per staff line and flags resolved',
+        () {
       final f = build();
-      final index = absoluteTransformIndex(f.system);
-      fakeResolveSlur(f.slur, index);
-
-      // Resolved in place: the same node, now flagged resolved and carrying
-      // one drawable leaf.
-      expect(f.slur.isResolved, isTrue);
-      expect(f.slur.elements.length, 1);
-      final line = f.slur.elements.first as LineElement;
-      // (6.18, 1.832) → (9.18, 0.832) — the two stemUpSE absolutes.
-      expect(line.startPoint, offsetCloseTo(expectedNoteheadAStemUpSeAbsolute));
-      expect(line.endPoint, offsetCloseTo(expectedNoteheadBStemUpSeAbsolute));
+      final linesGroup = f.staff1.staffLines!;
+      resolveStaffLines(f.staff1);
+      expect(linesGroup.isResolved, isTrue);
+      expect(linesGroup.elements.length, f.staff1.lineCount); // 5 lines
+      expect(linesGroup.elements, everyElement(isA<LineElement>()));
+      // Lines are horizontal, at y = 0..4, spanning from the staff origin.
+      final first = linesGroup.elements.first as LineElement;
+      expect(first.startPoint.dx, 0);
+      expect(first.startPoint.dy, first.endPoint.dy); // horizontal
+      expect(first.endPoint.dx, greaterThan(0)); // content-driven width
     });
 
-    test('after resolution, traversal no longer reports the slur', () {
+    test('after resolving every staff, traversal reports nothing unresolved', () {
       final f = build();
-      final index = absoluteTransformIndex(f.system);
-      fakeResolveSlur(f.slur, index);
+      resolveAllStaffLines(f);
       expect(unresolvedElements(f.system).toList(), isEmpty);
     });
 
-    test('the slur stays the same object across resolution (identity-stable)', () {
+    test('the staff-lines group stays the same object across resolution', () {
       final f = build();
-      final index = absoluteTransformIndex(f.system);
-      final before = f.slur;
-      fakeResolveSlur(f.slur, index);
-      expect(identical(f.slur, before), isTrue);
+      final before = f.staff1.staffLines;
+      resolveStaffLines(f.staff1);
+      expect(identical(f.staff1.staffLines, before), isTrue);
     });
   });
 
   group('S2: scale-free styling (no Paint / TextStyle / pixel values)', () {
-    test('noteheads carry a fill color; the stem carries a stroke + width', () {
+    test('noteheads fill; stems and staff lines stroke with staff-space widths',
+        () {
       final f = build();
-      // A notehead is filled (fill-vs-stroke intent derived from color presence).
-      expect(f.noteheadA.styling.hasFill, isTrue);
-      expect(f.noteheadA.styling.hasStroke, isFalse);
-      // The stem is stroked, with a staff-space (not pixel) thickness.
-      expect(f.stemA.styling.hasStroke, isTrue);
-      expect(f.stemA.styling.strokeWidth, 0.12); // staff-space
-      expect(f.stemA.styling.hasFill, isFalse);
+      resolveStaffLines(f.staff1);
+      expect(f.halfNoteG.notehead.styling.hasFill, isTrue);
+      expect(f.halfNoteG.notehead.styling.hasStroke, isFalse);
+      expect(f.halfNoteGStem.styling.hasStroke, isTrue);
+      expect(f.halfNoteGStem.styling.strokeWidth, 0.12); // staff-space
+      final staffLine = f.staff1.staffLines!.elements.first;
+      expect(staffLine.styling.hasStroke, isTrue);
+      expect(staffLine.styling.strokeWidth, 0.13); // staff-space
     });
 
     test('no drawable leaf carries unresolved (inherit) styling', () {
-      // Every drawable leaf the renderer would reach is styled — the layout
-      // phase is the sole source of styling, and nothing reaches the renderer
-      // with Styling.inherit (which would throw at the render boundary, WP2).
+      // Every drawable leaf the renderer would reach is styled — nothing reaches
+      // the renderer with Styling.inherit (which would throw, WP2). Staff lines
+      // are resolved first so their leaves exist.
       final f = build();
+      resolveAllStaffLines(f);
       final leaves = <Type>[GlyphElement, LineElement];
       final unstyled = <Element>[];
       void walk(Element e) {
-        final isLeaf = leaves.any((t) => t == e.runtimeType);
-        if (isLeaf && e.styling.isInherit) unstyled.add(e);
+        if (leaves.contains(e.runtimeType) && e.styling.isInherit) {
+          unstyled.add(e);
+        }
         for (final c in e.elements) {
           walk(c);
         }
       }
+
       walk(f.system);
-      expect(unstyled, isEmpty); // clefs, noteheads, stem, slur line all styled
+      expect(unstyled, isEmpty);
     });
   });
 }

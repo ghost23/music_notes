@@ -1,6 +1,7 @@
 import 'dart:ui' show Rect;
 
-import '../canvas_primitives.dart' show Element, GroupElement;
+import '../canvas_primitives.dart' show Element, GroupElement, LineElement;
+import 'separators.dart' show BarlineElement;
 
 /// The number of lines in a standard staff (SMUFL convention: 5 lines).
 const int staffLineCount = 5;
@@ -197,6 +198,36 @@ class StaffElement extends GroupElement {
   /// [MeasureElement] is type-checked at compile time.
   List<MeasureElement> get measures => super.elements as List<MeasureElement>;
 
+  /// The staff's drawable staff-line primitives — one [LineElement] per line —
+  /// or `null` before they are built.
+  ///
+  /// ## Why this is a *deferred* role (WP1-S5)
+  ///
+  /// A staff line's vertical position is fixed (`y = 0 … lineCount − 1`), but
+  /// its **horizontal length is content-driven**: the lines span the full width
+  /// of the music, which is only known once this staff's measures are laid out
+  /// (see [staffLineRegion], whose width is deliberately `0`). So the lines are
+  /// modelled as a **deferred** node: a builder attaches an *unresolved*
+  /// [GroupElement] here (`isResolved == false`, empty), and a resolver fills in
+  /// the [LineElement]s and flips `isResolved` once the content width is known —
+  /// exactly the S5 mechanism (any node may be unresolved, not just
+  /// cross-references). The renderer refuses the unresolved group until then.
+  ///
+  /// Computing the width and building the lines is a layout concern (a WP5/WP7
+  /// rule); the IR only provides the slot. Drawn **first** (behind the measures)
+  /// so notes sit on top of the lines.
+  GroupElement? staffLines;
+
+  /// This staff's children in draw order: the [staffLines] group first (behind
+  /// the music), then the [measures]. Mirrors [MeasureElement]'s attribute/
+  /// column composition — [measures] stays the typed measure list (via
+  /// `super.elements`) while the walk sees lines + measures uniformly.
+  @override
+  List<Element> get elements => [
+        if (staffLines != null) staffLines!,
+        ...measures,
+      ];
+
   /// The staff's local extent: the union of its 5-line [staffLineRegion] and
   /// its descendants' folded boxes (S1's child-box fold). An empty staff
   /// reports just the line span (`[0, 4]` staff spaces tall); a staff with
@@ -229,21 +260,31 @@ class StaffElement extends GroupElement {
 ///
 /// **Source:** `Measure`.
 /// **Composes:** an optional leading [GroupElement] of attribute elements
-/// (`ClefElement`/`KeySignatureElement`/`TimeSignatureElement`) followed by
-/// the measure's [ColumnElement]s. This mirrors the existing
-/// `noteGrid` + `attributesColumn` split, expressed as typed fields.
-/// **Layout fields:** [columns] and [attributes] (structural composition of
-/// children); no musical-concept data is stored on the measure itself.
+/// (`ClefElement`/`KeySignatureElement`/`TimeSignatureElement`), the measure's
+/// [ColumnElement]s, and an optional trailing [BarlineElement]. This mirrors
+/// the existing `noteGrid` + `attributesColumn` split, expressed as typed
+/// fields.
+/// **Layout fields:** [columns], [attributes] and [barline] (structural
+/// composition of children); no musical-concept data is stored on the measure
+/// itself.
 class MeasureElement extends GroupElement {
   MeasureElement(
     super.transform, [
     List<ColumnElement> super.columns = const [],
     this.attributes,
+    this.barline,
   ]);
 
   /// Optional leading group holding the measure's clef/key/time attribute
   /// elements (`null` when the measure carries no attribute change).
   final GroupElement? attributes;
+
+  /// Optional trailing barline that closes this measure (`null` when the
+  /// measure has no drawn barline). Positioned by its own transform at the
+  /// measure's right edge; the barline *style* is encoded by the
+  /// [LineElement]/[GlyphElement] leaves it composes, not stored here (see
+  /// [BarlineElement]).
+  final BarlineElement? barline;
 
   /// The vertical columns (the "note grid") of this measure. Each column
   /// groups the events that share a time-slice across the staves.
@@ -253,6 +294,7 @@ class MeasureElement extends GroupElement {
   List<Element> get elements => [
         if (attributes != null) attributes!,
         ...columns,
+        if (barline != null) barline!,
       ];
 
   @override
@@ -260,7 +302,7 @@ class MeasureElement extends GroupElement {
     for (final e in value) {
       if (e is! ColumnElement) {
         throw ArgumentError(
-          'StaffElement only accepts ColumnElement children; got ${e.runtimeType}.',
+          'MeasureElement only accepts ColumnElement children; got ${e.runtimeType}.',
         );
       }
     }

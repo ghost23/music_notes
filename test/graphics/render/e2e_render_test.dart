@@ -3,8 +3,6 @@ import 'dart:ui' show Canvas, Image, ImageByteFormat, PictureRecorder;
 import 'package:flutter/widgets.dart' show CustomPaint, Size;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:music_notes_2/main.dart' show MyApp;
-import 'package:music_notes_2/graphics/layout/cross_references.dart'
-    show absoluteTransformIndex;
 import 'package:music_notes_2/graphics/layout/geometry.dart'
     show absoluteBoundingBox;
 import 'package:music_notes_2/graphics/render/ir_tree_painter.dart';
@@ -13,9 +11,9 @@ import 'package:music_notes_2/graphics/wp1_contract_fixture.dart';
 
 /// End-to-end render proof for WP2-S4.
 ///
-/// Renders the shared WP1-S7 contract fixture (its deferred slur resolved first,
-/// as the real pipeline will) through the [IRTreePainter] / S3 tree-walker onto
-/// a recording canvas, and asserts:
+/// Renders the shared WP1 contract fixture (its deferred staff lines resolved
+/// first, as the real pipeline will) through the [IRTreePainter] / S3
+/// tree-walker onto a recording canvas, and asserts:
 /// - the paint completes without throwing — proving no unresolved node, no
 ///   missing styling, and no contract violation reaches the canvas; and
 /// - the rasterised output is non-empty — proving it actually draws something.
@@ -24,17 +22,16 @@ import 'package:music_notes_2/graphics/wp1_contract_fixture.dart';
 /// hand-built tree, so WP2's render test and WP1's geometry tests assert
 /// against the same example.
 void main() {
-  /// Builds the S7 fixture with its deferred slur already resolved.
+  /// Builds the fixture with its deferred staff lines already resolved.
   Wp1ContractFixture resolvedFixture() {
     final fixture = buildWp1ContractFixture();
-    final index = absoluteTransformIndex(fixture.system);
-    fakeResolveSlur(fixture.slur, index);
+    resolveAllStaffLines(fixture);
     return fixture;
   }
 
   final renderScale = RenderScale(9);
 
-  test('the resolved S7 fixture renders through the painter without throwing', () {
+  test('the resolved fixture renders through the painter without throwing', () {
     final fixture = resolvedFixture();
     final painter =
         IRTreePainter(root: fixture.system, renderScale: renderScale);

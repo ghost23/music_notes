@@ -92,18 +92,18 @@ new pipeline.
 
 ## Acceptance criteria
 
-- [ ] A reusable golden helper renders an IR root at a given scaling measure to
+- [x] A reusable golden helper renders an IR root at a given scaling measure to
       an image and compares it via `matchesGoldenFile`, with no layout logic and
       no render setup duplicated from S4.
-- [ ] Bravura (and any needed text font) loads deterministically in the test
+- [x] Bravura (and any needed text font) loads deterministically in the test
       environment (via `flutter_test_config.dart`); glyphs rasterise as real
       glyphs, not missing-glyph boxes.
-- [ ] A first golden of the resolved WP1-S7 fixture is committed under
+- [x] A first golden of the resolved WP1-S7 fixture is committed under
       `test/goldens/`, produced by the new pipeline at a fixed, documented scale
       and size; the orphan `main_demo.png` is not reused.
-- [ ] The golden test passes against its reference and fails on an intentional
+- [x] The golden test passes against its reference and fails on an intentional
       perturbation (sanity check that it actually compares pixels).
-- [ ] The golden-update workflow and the platform/consistency decision are
+- [x] The golden-update workflow and the platform/consistency decision are
       documented.
-- [ ] The test imports the shared `buildWp1ContractFixture()`; the full WP1 +
+- [x] The test imports the shared `buildWp1ContractFixture()`; the full WP1 +
       WP2 suite passes and `flutter analyze` is clean.

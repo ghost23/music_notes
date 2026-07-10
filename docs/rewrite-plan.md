@@ -168,6 +168,20 @@ context-dependent symbols (WP6) that justify the whole effort.
   WPs) as layout-time defaults. The renderer's only own contribution is the
   scale-dependent pixel conversion (staff-space → pixel font size / pixel
   stroke width) from the single render scaling measure.
+- **Vertical axis & the SMUFL coordinate seam**: The IR works in a **y-down**
+  space (`x` right, `y` down — screen/canvas convention; see
+  `graphics_model/transform.dart`). SMUFL's native glyph metrics (bounding
+  boxes, anchors) are **y-up** with the glyph origin on the **baseline**. The
+  conversion happens at exactly **two boundaries**, and nowhere in between deals
+  in SMUFL's y-up convention:
+  1. **Data generation** — `convertJsonToDart.mjs` negates y when emitting the
+     generated bbox/anchor tables, so all glyph metadata is already y-down in
+     the IR.
+  2. **Rendering** — the renderer aligns each glyph's **font baseline** to the
+     node origin (a glyph is registered to its baseline, not its top-left), so
+     placing a glyph node at its SMUFL staff position (e.g. a gClef node on the
+     G line, a notehead node on its line/space) draws it correctly. See
+     `render/draw_primitives.dart`.
 
 ## Open design questions (to resolve later)
 

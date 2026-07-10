@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '/graphics/layout/cross_references.dart' show absoluteTransformIndex;
 import '/graphics/layout/geometry.dart' show absoluteBoundingBox;
 import '/graphics/render/ir_tree_painter.dart';
 import '/graphics/render/render_scale.dart';
@@ -56,12 +55,11 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
     fixture = buildWp1ContractFixture();
-    // Resolve the deferred slur *before* rendering: the S3 walker refuses
-    // unresolved nodes (WP1-S5). `fakeResolveSlur` stands in for the WP6
-    // curve math; the real pipeline order is WP3 resolves, then the renderer
-    // draws.
-    final index = absoluteTransformIndex(fixture.system);
-    fakeResolveSlur(fixture.slur, index);
+    // Resolve the deferred staff lines *before* rendering: the S3 walker refuses
+    // unresolved nodes (WP1-S5). Staff-line length is content-driven, so it is
+    // resolved once the content width is known — the real pipeline order is
+    // WP3 resolves, then the renderer draws.
+    resolveAllStaffLines(fixture);
   }
 
   @override

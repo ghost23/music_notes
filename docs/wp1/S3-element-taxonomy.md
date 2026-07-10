@@ -171,7 +171,7 @@ Consequences for this story:
 ## Implementation
 
 The taxonomy lives under
-[`lib/graphics/graphics_model/semantic/`](../../lib/graphics/graphics_model/semantic/),
+`lib/graphics/graphics_model/semantic/`,
 organised by category (one file per category, plus a `semantic.dart` barrel
 that re-exports them and states the glyph-knowledge contract once for the whole
 IR). The primitive layer stays in `canvas_primitives.dart` — semantic nodes
@@ -206,8 +206,8 @@ child list) or **composite** (`CompositeElement` — fixed typed named roles).
 | **Structural** (`structural.dart`) | | | | |
 | `SystemElement` | `Score` (one system per score for the first milestone) | collection (typed) | `PartElement` children | none (S6 adds vertical arrangement) |
 | `PartElement` | `Part` | collection (typed) | `StaffElement` children | none |
-| `StaffElement` | `Attributes.staves` + `Note.staff` / `Clef.staffNumber` | collection (typed) | `MeasureElement` children | `staffNumber` (1-based) |
-| `MeasureElement` | `Measure` | collection (typed) | optional attributes `GroupElement` + `ColumnElement`s | `columns`, `attributes` |
+| `StaffElement` | `Attributes.staves` + `Note.staff` / `Clef.staffNumber` | collection (typed) | optional deferred `staffLines` group + `MeasureElement` children | `staffNumber` (1-based), `staffLines` (deferred, WP2) |
+| `MeasureElement` | `Measure` | collection (typed) | optional attributes `GroupElement` + `ColumnElement`s + optional trailing `BarlineElement` | `columns`, `attributes`, `barline` (WP2) |
 | `ColumnElement` | derived: `MeasureContent` sharing a division offset (cumulative `duration` / `Backup` / `Forward` vs `Attributes.divisions`) | collection | simultaneous event elements | none (division offset is a WP5 input) |
 | **Attributes** (`attributes.dart`) | | | | |
 | `ClefElement` | `Clef` | **composite** | `glyph` — clef `GlyphElement` (sign = leaf identity) | none |

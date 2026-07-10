@@ -189,6 +189,24 @@ double _strokeWidthOrThrow(Element element, Styling styling) {
 /// missing. The font size is the staff-space em [RenderScale.staffSpacesPerEm]
 /// (`4`); the root canvas scale converts it to pixels (1 em = 4 staff spaces).
 /// Font family is a render-phase resource binding, not IR state.
+///
+/// ## Baseline registration (the SMUFL ↔ IR coordinate seam)
+///
+/// A SMUFL glyph is registered to the **font baseline**: its origin (`x = 0`,
+/// `y = 0` in the glyph's own space) is the point that must land on the node's
+/// staff-space origin — e.g. a notehead's baseline runs through its vertical
+/// centre, a gClef's through the G line. But [TextPainter.paint] places the
+/// text box's **top-left** at the given offset, not the baseline; painting at
+/// `Offset.zero` would drop every glyph down by the font ascent. We shift up by
+/// the measured box-top→baseline distance so the glyph's SMUFL origin coincides
+/// with the node origin (staff-space `y = 0`), independent of the font's line
+/// metrics.
+///
+/// This is the render side of the single coordinate seam between SMUFL's native
+/// **y-up** metrics and the IR's **y-down** space: the data generator
+/// (`convertJsonToDart.mjs`) negates y so every glyph bbox/anchor is y-down in
+/// the IR, and the renderer here aligns the baseline. Nothing in between deals
+/// in SMUFL's y-up convention.
 void _drawGlyph(Canvas canvas, GlyphElement element) {
   final textPainter = TextPainter(
     text: TextSpan(
@@ -198,7 +216,12 @@ void _drawGlyph(Canvas canvas, GlyphElement element) {
     textDirection: TextDirection.ltr,
   );
   textPainter.layout();
-  textPainter.paint(canvas, Offset.zero);
+  // Distance (staff-space units) from the text box top to the alphabetic
+  // baseline; the root canvas scale converts to pixels. Painting at -baseline
+  // puts the glyph's SMUFL origin on the node origin.
+  final baseline =
+      textPainter.computeDistanceToActualBaseline(TextBaseline.alphabetic);
+  textPainter.paint(canvas, Offset(0, -baseline));
   textPainter.dispose();
 }
 

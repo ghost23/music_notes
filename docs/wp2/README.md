@@ -127,6 +127,27 @@ added.
   and the golden harness (S5). The rich widget layer — responsive sizing, zoom,
   scroll, multiple systems — needs real parsed scores (WP3) and multi-system
   content, and folds into the **WP7** era (see "Note on the merged WP8" above).
-- **Real engraving correctness.** The fixture is a contract demonstrator, not an
-  engraved score (clefs at the staff origin, straight-line slur, fixed stems —
-  as documented in WP1-S7).
+- **Real engraving correctness.** The fixture is a contract + render
+  demonstrator, not an engraved score (fixed stem lengths, hand-set spacing,
+  two half notes standing in for the reference's dyad — as documented in
+  WP1-S7). Real spacing/engraving rules are WP5/WP6.
+
+## Corrections during WP2 (post-implementation)
+
+Reviewing the first golden surfaced issues that were fixed within WP2 rather
+than deferred (they were things the render/IR should have had all along):
+
+- **Glyph baseline registration (S3).** The tree-walker painted glyphs at
+  `TextPainter`'s top-left instead of the SMUFL **baseline**, dropping every
+  glyph down by the font ascent. Fixed by aligning the baseline to the node
+  origin — the render half of the y-up(SMUFL) ↔ y-down(IR) coordinate seam (see
+  the resolved decision in `rewrite-plan.md`).
+- **Renderable staff lines & barlines (S2 taxonomy).** `StaffElement` gained a
+  **deferred** `staffLines` role (length is content-driven — resolved once the
+  content width is known, the new S5 exemplar) and `MeasureElement` gained a
+  `barline` role; `BarlineElement` composes its thin/thick `LineElement` leaves.
+- **Musically-faithful fixture (S4/S5).** The arbitrary quarter-note-and-slur
+  fixture was replaced with a grand staff matching [`../wp1/test.png`](../wp1/test.png)
+  (clefs on their reference lines, 4/4, half notes with a sharp, whole notes, a
+  whole rest, aligned barlines, staff lines), and the golden was refreshed. See
+  [WP1-S7](../wp1/S7-contract-validation.md).

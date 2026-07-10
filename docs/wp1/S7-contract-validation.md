@@ -63,76 +63,80 @@ S7 ships a reusable, hand-built fixture plus the tests that drive it — no new
 IR surface (it consumes the S1–S6 contract as-is, which is the point: it
 proves the contract composes).
 
+> **Revised during WP2.** The original fixture was a musically-arbitrary
+> collection of quarter notes and a placeholder slur — fine for the contract but
+> hard to compare against real engraving. It has been **replaced with a
+> musically-faithful grand staff** (see [`test.png`](./test.png), the reference
+> reproduced) once the renderer's glyph baseline registration was fixed (WP2
+> corrections). Two small taxonomy roles were added to support it —
+> `StaffElement.staffLines` (deferred) and `MeasureElement.barline` — and the
+> deferred-reference exemplar is now the **staff lines** (their length is
+> content-driven) rather than a slur. The description below reflects the current
+> fixture.
+
 ### What lives where
 
-- **The fixture** — [`test/support/wp1_contract_fixture.dart`](../../test/support/wp1_contract_fixture.dart):
-  - `buildWp1ContractFixture()` builds a 2-staff system (system → part →
-    staff1/staff2, each with a measure holding a clef in its `attributes` group
-    and note(s) in columns), arranged by S6's `arrangeStavesVertical`. Each
-    staff has **two measures**: the first carries the clef and a **4/4 time
-    signature** (`TimeSignatureElement`, beats/beatType both `timeSig4`) in its
-    `attributes` group; the second is offset to `x = 12`. Staff1 (treble,
-    gClef) carries Note A `(5,2)` with a stem placed at the notehead's
-    `stemUpSE` anchor (S4), Note B `(8,1)` with a **sharp accidental**
-    (`accidentalSharp`), and — in measure 2 — an **eighth note** `(13,2)`
-    (notehead + stem + `flag8thUp`, the flag placed via its `stemUpNW` anchor at
-    the stem top, exercising a second S4 anchor). Staff2 (bass, fClef) carries
-    Note C `(5,3)` and — in measure 2 — a **full rest** (`restWhole`) `(13,14)`.
-    A deferred `SlurElement` in staff1's first column cross-references
-    noteheadA & noteheadB by identity, each with the `stemUpSE` local anchor
-    (exercising S4 + S5 together). It returns a `Wp1ContractFixture` with
-    handles to the root and every node the tests / WP2 / WP3 need to reach by
-    identity.
-  - `fakeResolveSlur(slur, index)` — the trivial resolver (straight line
-    between the two cross-references' absolute anchor points via
-    `crossReferenceAbsoluteOffset`), mutating the slur in place
-    (identity-stable).
-  - The hand-computed expected values are documented in the library doc and
-    exposed as named constants (`expectedNoteheadAStemUpSeAbsolute`, etc.) so
-    WP2/WP3 tests assert against the same arithmetic the builder used.
+- **The fixture** — [`lib/graphics/wp1_contract_fixture.dart`](../../lib/graphics/wp1_contract_fixture.dart)
+  (in `lib/` so `main.dart` can display it until WP3 builds the IR from a real
+  score):
+  - `buildWp1ContractFixture()` builds a **grand staff** (system → part →
+    staff1/staff2), arranged by S6's `arrangeStavesVertical` (`dy = 0` / `12`).
+    Each staff has **two measures** (measure 2 offset to `x = 11`) closed by a
+    barline. Measure 1 carries a clef and a **4/4 time signature** in its
+    `attributes` group. Glyphs sit at their **SMUFL registration** positions
+    (the renderer aligns the glyph baseline to the node origin):
+    - **Staff 1 (treble, gClef on the G line `y = 3`)**: two half notes — G4
+      `(5.5,3)` with a stem placed at the notehead's `stemUpSE` anchor (S4), and
+      A4 `(8.5,2.5)` with a **sharp accidental** — then a **whole note** F5
+      `(13,0)` in measure 2.
+    - **Staff 2 (bass, fClef on the F line `y = 1`)**: a **whole note** D3
+      `(5.5,14)`, then a **whole rest** (`restWhole`) `(13.5,13)` in measure 2.
+    - Every measure is closed by a `BarlineElement` (a regular thin barline
+      between measures; a **final** thin+thick barline at the end), aligned
+      across the two staves.
+    - Each staff's **staff lines** are a **deferred** `staffLines` group
+      (`isResolved == false`, empty) — their horizontal length is content-driven
+      (S5); `resolveStaffLines` / `resolveAllStaffLines` fill in one
+      `LineElement` per line once the content width is known.
+  - It returns a `Wp1ContractFixture` with handles to the root and every node
+    the tests / WP2 / WP3 reach by identity.
 - **The tests** — [`test/graphics/wp1_contract_test.dart`](../../test/graphics/wp1_contract_test.dart)
   drive a fresh fixture per test and assert, by story:
   - **S6** — per-staff absolute origins via the S5 index (`(0,0)` / `(0,12)`)
     and note/rest absolute origins composing through the staff transforms
-    (`(5,2)`, `(8,1)`, `(5,15)`, eighth note `(13,2)`, full rest `(13,14)`);
-  - **S1** — the system's total bounding box `(−0.02, −4.392, 15.236, 16)`
-    (real `gClef`/`fClef`/`noteheadBlack`/`flag8thUp`/`timeSig4`/… bboxes
-    composed with the clean transforms; top from `gClef`, bottom from staff2's
-    line region, left from `fClef`, right from the eighth-note flag),
-    `systemVerticalExtent` agreeing with the height, and the bbox unchanged by
-    slur resolution (the resolved line fits);
-  - **S4** — the notehead's `stemUpSE` anchor resolving to `(6.18, 1.832)`
-    (and B to `(9.18, 0.832)`), the stem's start point landing exactly on that
-    anchor, **and** the eighth-note flag's `stemUpNW` anchor coinciding with
-    the stem top `(14.18, −1.168)` — proving two anchor attachments;
-  - **S5** — the slur being the only unresolved node, `fakeResolveSlur`
-    drawing the line `(6.18, 1.832)→(9.18, 0.832)`, traversal no longer
-    reporting it after resolution, and the slur staying the same object
-    (identity-stable);
-  - **S3** — the extended taxonomy: each staff's first measure carries a 4/4
-    `TimeSignatureElement` (two `timeSig4` numeral roles), the eighth note is
-    a notehead + stem + `flag8thUp` composite, the second measure of staff2
-    holds a `RestElement` (`restWhole`), note B carries a sharp `accidental`
-    role drawn before the notehead, and each staff has two measures with
-    measure 2 offset to `x = 12`;
-  - **S2** — noteheads carry a fill color, the stem a stroke + staff-space
-    width, and no drawable leaf reaches the renderer with `Styling.inherit`
-    (no `Paint`/`TextStyle`/pixel values anywhere in the fixture).
+    (G4 `(5.5,3)`, A4 `(8.5,2.5)`, treble whole `(13,0)`, bass whole `(5.5,14)`,
+    whole rest `(13.5,13)`);
+  - **S1** — the system's composed bounding box `(0, −1.392, 16.4, 16)` (staff
+    lines from `x = 0`; top from `gClef`; right from the final barline's thick
+    segment; bottom from staff2's line region), with `systemVerticalExtent`
+    agreeing with the height;
+  - **S4** — the half note's `stemUpSE` anchor resolving to `(6.68, 2.832)`,
+    the stem's start landing exactly on it, and the stem extending up by
+    `stemLength`;
+  - **S5** — both staves' `staffLines` being the only unresolved nodes,
+    `resolveStaffLines` filling in one line per staff line and flagging
+    resolved, traversal no longer reporting them, and the group staying the same
+    object (identity-stable);
+  - **S3** — the taxonomy: clefs (`gClef`/`fClef`), 4/4 `TimeSignatureElement`s,
+    `noteheadWhole`/`restWhole` glyphs, the sharp `accidental` role drawn before
+    its head, and each measure closed by a `BarlineElement` (regular = one
+    segment; final = two);
+  - **S2** — noteheads fill, stems and staff lines stroke with staff-space
+    widths, and no drawable leaf reaches the renderer with `Styling.inherit`.
 
 ### Design notes honoured
 
-- **Hand-computable, exact assertions.** All transforms are clean staff-space
-  values; the composition arithmetic is restated in each assertion's comments.
-  The only non-integer inputs are the real SMUFL glyph bboxes / anchors
-  (`noteheadBlack.stemUpSE = (1.18, −0.168)`, `flag8thUp.stemUpNW =
-  (0, 0.04)`, the `gClef`/`fClef`/`flag8thUp` bboxes) — looked-up facts,
-  documented in the fixture's library doc, asserted with a tiny fp tolerance.
-- **Reusable across WPs.** The fixture is a `test/support/` file (importable
-  by other test files via relative path) so WP2's render tests and WP3's
-  layout tests build against the same golden example. It consumes the contract
-  as-is — no IR changes — confirming S7's claim that WP2/WP3 can build against
-  WP1 without further IR work for the first milestone.
-- **No musical correctness.** Clef glyphs are placed at the staff origin
-  (not aligned to a staff line), the slur is a straight line (not a curve),
-  and the stem is a fixed length — deliberately, since real engraving is WP5/6.
-  The fixture is a *contract* demonstrator, not a rendered score.
+- **Musically faithful, still hand-computable.** Transforms are clean
+  staff-space values; the composition arithmetic is restated in each
+  assertion's comments. The non-integer inputs are the real SMUFL glyph bboxes /
+  anchors (`noteheadHalf.stemUpSE = (1.18, −0.168)`, the `gClef`/`fClef`/… bboxes)
+  — looked-up facts, documented in the fixture's library doc, asserted with a
+  tiny fp tolerance.
+- **Reusable across WPs.** The single fixture is imported by the WP1 geometry
+  tests, WP2's render/golden tests, and `main.dart`, so they all build against
+  the same example. It consumes the S1–S6 contract plus the two small roles
+  added in WP2 (`staffLines`, `barline`).
+- **Real engraving is still later.** Stem lengths are fixed, the two treble
+  notes stand in for the reference's dyad, and inter-staff/horizontal spacing is
+  hand-set — real engraving rules are WP5/WP6. The fixture is a *contract +
+  render* demonstrator, not an engraved score.

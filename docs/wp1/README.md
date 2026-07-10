@@ -33,8 +33,12 @@ on demand, as layout rules need them.
 Suggested order: S1 → S2 → S3 → S4 → S5 → S6 → S7. S7 is the capstone that
 proves the contract on a hand-built multi-staff example before any layout rules
 exist. **All seven stories are complete** (S1–S7); the capstone fixture lives
-in [`test/support/wp1_contract_fixture.dart`](../../test/support/wp1_contract_fixture.dart)
+in [`lib/graphics/wp1_contract_fixture.dart`](../../lib/graphics/wp1_contract_fixture.dart)
 and its tests in [`test/graphics/wp1_contract_test.dart`](../../test/graphics/wp1_contract_test.dart).
+During WP2 the fixture was revised into a musically-faithful grand staff (see
+[`test.png`](./test.png)) and two small taxonomy roles were added to support it
+— `StaffElement.staffLines` (deferred, content-driven) and
+`MeasureElement.barline`; see [S7](./S7-contract-validation.md).
 
 ## Definition of done for WP1 — ✓ satisfied
 
