@@ -1,9 +1,11 @@
 # WP3 — Layout Engine Core (multi-pass driver)
 
-**Status: preliminary / thinking-in-progress.** This document captures the
-current state of our design thinking for the multi-pass layout driver and the
-rule contract it runs. It is not yet broken into developer stories; it exists to
-pin down the concepts we agreed on before we commit to an interface.
+**Status: designed; broken into developer stories.** This document is the
+**design reference** for the multi-pass layout driver and the rule contract it
+runs — the concepts we pinned down before committing to an interface. The work
+is now decomposed into the developer stories in the [table below](#stories);
+each story cites the section here that specifies it. The sections that follow
+this and the Goal remain the reference material the stories point at.
 
 See [`../rewrite-plan.md`](../rewrite-plan.md) (WP3 section + "Pass convergence"
 open question), [`../code-principle.md`](../code-principle.md), and the WP1 IR
@@ -22,6 +24,57 @@ The driver itself computes **no** music geometry. It only: builds the tree,
 schedules rules, feeds them the derived data they need (absolute geometry),
 detects when the layout has settled, and hands a best-effort tree to the
 renderer.
+
+## Stories
+
+| ID | Title | Depends on |
+|---|---|---|
+| [S1](./S1-rule-contract-and-channels.md) | Rule contract & channel model | — |
+| [S2](./S2-cascade-and-damped-write.md) | Per-channel cascade & the damped write | S1 |
+| [S3](./S3-rule-scheduler.md) | Rule scheduler: precondition graph & SCC condensation | S1 |
+| [S4](./S4-pass-driver-loop.md) | The pass driver loop (the settle spine) | S1, S2, S3 |
+| [S5](./S5-diagnostics-schema-and-sink.md) | Diagnostics: record schema, driver emission & JSONL sink | S1, S4 |
+| [S6](./S6-diagnostic-overlay-renderer.md) | Generic diagnostic overlay renderer | S5 |
+| [S7](./S7-capstone-driver-with-fake-rules.md) | Capstone: driver end-to-end with fake rules | S1–S6 |
+
+Suggested order: S1 → S2 → S3 → S4 → S5 → S6 → S7. S1 pins the vocabulary
+(contract + channels + contributions) everything else keys off; S2 and S3 are
+the two independent halves the loop composes (cascade + scheduler); S4 is the
+convergence spine that ties them together; S5/S6 are the diagnostics toolset
+(**S6 depends only on S5's record schema, so it can proceed in parallel** once
+that schema is pinned, independent of the driver); S7 is the capstone.
+
+Because WP3 has no real rules (WP5/WP6) and does not build the IR from a parsed
+`Score` (WP5 builders), the driver is exercised throughout on a **hand-built** IR
+— the shared WP1-S7 grand-staff fixture — driven by **fake** rules. S7 proves the
+whole engine converges that fixture and emits diagnostics before any real rule
+exists, the WP3 analogue of the WP1-S7 / WP2-S4 capstones.
+
+## Definition of done for WP3
+
+- The **rule execution contract** (applicability / precondition [hard gate vs
+  convergence hint] / ε-tolerance postcondition; declarative per-channel
+  `apply`; validator-only flag) and the **channel set** (common + primitive
+  geometry channels, tagged continuous vs discrete) exist as tested types.
+- The **per-channel cascade** (gather → highest-specificity wins → suppress the
+  rest) and the **write step** (in-place, damped on continuous channels, direct
+  on discrete/styling) resolve a bag of contributions into a mutated IR + a
+  suppression report.
+- The **scheduler** condenses the precondition graph into SCCs (topological
+  between, registration order within), gating only on hard prerequisites so
+  hint cycles do not deadlock.
+- The **pass driver** runs passes to a derived **settled** state (or best-effort
+  + diagnostics on non-convergence), owns and rebuilds the absolute-transform/
+  anchor index, enforces the per-`(rule, scope)` action budget, and evaluates
+  postconditions over won channels — never blocking rendering.
+- The **diagnostics toolset** ships: the structured record schema (incl. the
+  opaque rule-payload hook), driver-level emission, a JSON/JSONL file sink, and a
+  generic, semantically-agnostic **overlay renderer**, tested against synthetic
+  records.
+- The whole engine is **proven end-to-end** on the WP1-S7 fixture with fake
+  rules (S7): settle loop, contested-channel cascade, cross-tree resolution, the
+  `(rule, scope)` settledness report, and both diagnostics sinks, with the full
+  WP1 + WP2 + WP3 suite green and `flutter analyze` clean.
 
 ## Where layout output lives (recap of the WP1 decision)
 
@@ -72,12 +125,29 @@ different machinery.
 2. **Precondition — "can I run *yet*?"**
    Governs **scheduling/ordering**. A stem-length rule cannot finalize until the
    beam it attaches to is placed. Preconditions induce a **dependency ordering**
-   between rules (ideally a DAG); a rule is only asked to act, or asked about its
-   postcondition, once its preconditions hold.
+   between rules; a rule is only asked to act, or asked about its postcondition,
+   once its preconditions hold.
+
+   The dependency is on **layout output**, not on *building*: WP5 builds the whole
+   tree up front, so every element already exists when the driver runs. A
+   precondition says "the layout state I consume as input is ready" — rule A reads
+   a channel value that rule B writes. Two flavours, and the distinction is what
+   keeps cycles from being a problem (see "Dependency cycles are handled by
+   iteration"):
+   - a **hard gate** — "my input geometry does not exist at all yet / the element
+     I read is not *resolved* (S5)." These are real prerequisites and form a DAG
+     by construction (resolution is a DAG — a beam references its notes, not vice
+     versa).
+   - a **convergence hint** — "I'd compute a better value if B were already
+     placed, but I can run against whatever is there now and improve next pass."
+     These are *not* gates; they are what the relaxation loop is for.
 
 3. **Postcondition — "are my constraints now satisfied?"**
    Governs **convergence**. This is the check that feeds the settled test. It
-   must be evaluable against the *current* tree state without side effects.
+   must be evaluable against the *current* tree state without side effects, and
+   it must be **tolerance-based** (an ε band, "within tolerance of the required
+   clearance"), never exact equality — because damping (below) only *approaches*
+   a target asymptotically, so an exact test would never read "satisfied."
 
 Plus:
 
@@ -255,19 +325,25 @@ it is the trigger to design a solution.
 ```
 build tree from data model (WP5 builders)
 build absolute-transform/anchor index (top-down, from current transforms)
-repeat, up to a bounded iteration count:
+repeat until settled or all (rule, scope) pairs are frozen:
     collect contributions:
         for each rule, in dependency order (preconditions):
-            for each applicable scope whose preconditions hold:
+            for each applicable scope whose preconditions hold
+                    AND whose (rule, scope) action budget is not exhausted:
                 emit this rule's local-target contributions, keyed by channel
+                decrement that (rule, scope) budget            # starts at 10
     resolve the cascade:
         for each channel: pick highest-specificity contribution
                            (tie-break: registration order); suppress the rest
-        write the winning local targets into the IR in place
+        write the winner into the IR in place:
+            continuous channels (transform + geometry):        # DAMPED
+                written = current + 0.4 * (target - current)
+            styling + glyph-identity:                          # written directly
+                written = target
     rebuild the absolute-transform/anchor index   # geometry changed
-    evaluate all postconditions (each rule over the channels it won)
+    evaluate all postconditions (each rule over the channels it won, within ε)
     if all satisfied: -> SETTLED, stop
-if not settled after the bound:
+if not settled when the loop ends (all budgets spent):
     emit best-effort tree + diagnostics (do NOT block rendering)
 ```
 
@@ -287,17 +363,82 @@ dot, rule B shoves the dot right off the accidental, forever. Two guards:
   registration-order tie-break decides, or the two rules genuinely want to be
   **merged into one**. And concrete specificity depends on WP4 defining what a
   selector *is*; WP3 adopts the mechanism, WP4 makes the metric concrete.
-- **Bounded iteration count (always).** Suppression removes *pairwise*
+- **Per-(rule, scope) action budget (always).** Suppression removes *pairwise*
   oscillation, but coupled chains across many rules can still fail to reach a
-  fixed point. The loop keeps a hard cap regardless — a non-negotiable backstop
-  against non-termination.
+  fixed point. Each `(rule, scope)` pair may act at most **10 times** (starter
+  value — we lack data for a better one). Because total actions ≤ 10 × (number of
+  pairs) is finite, this **alone guarantees termination** — no separate global
+  pass counter is needed. A pair that exhausts its budget is *frozen* (emits no
+  further contributions), but its postcondition is still evaluated for the
+  settled report and diagnostics.
+- **Damping (always, on continuous channels).** See below.
+
+### Bound and damping (starter values, to be tuned)
+
+Both numbers are provisional — chosen to get moving, not because we have data.
+
+- **Action budget: 10 per `(rule, scope)`** (above).
+- **Damping factor: 0.4**, applied by the driver in the **write step, after the
+  cascade** — the rule still emits a clean, *undamped* target; the driver moves
+  only part-way toward it:
+
+  ```
+  written = current + 0.4 * (target - current)     # close 40% of the gap per pass
+  ```
+
+  This is under-relaxation: it kills overshoot, the leading cause of oscillation
+  in a relaxation loop. It is done at write time precisely so it never touches the
+  target-based rule contract (a rule never expresses a delta).
+
+- **Damping applies to *continuous* channels only:** `translate-x/y`, `scale`,
+  `rotation`, and the geometry point channels. It does **not** apply to `Styling`
+  fields or to `glyph-identity` — the latter because it is *discrete* (there is no
+  "40% of the way from flag-up to flag-down"). Those channels are written directly
+  to the winning value.
+
+The two starters are at least mutually consistent: 0.4 damping over 10 passes
+closes `1 − 0.6¹⁰ ≈ 99.4%` of a stationary gap, so the budget is not obviously
+too small for the damping. (At 0.1 damping, 10 passes would close only ~65% and
+the budget would starve rules — a reason to tune them *together*.)
+
+### Dependency cycles are handled by iteration, not feared
+
+Because preconditions depend on *layout output* (not on building — see "The rule
+contract"), two rules can genuinely form a cycle: e.g. stem-length reads the
+beam's placed position, and beam-placement reads the stems' lengths (a too-short
+stem pushes the beam up). This is a real, classic engraving coupling, not a
+modelling mistake — and it is **not** a deadlock. A cyclic *data-flow* coupling
+is just a coupled fixed point, which is exactly what the relaxation loop solves
+(same machinery as accidental↔dot).
+
+A cycle only deadlocks if both edges are modelled as **hard gates** — then
+neither rule ever starts. So the design rule is: **gate only on hard
+prerequisites** (input exists / element resolved per S5, which form a DAG);
+express convergence couplings as **hints**, so both rules run every pass and the
+loop relaxes them. A precondition that would create a cycle is the signal that a
+convergence coupling was mis-modelled as a gate.
+
+The scheduler makes this concrete without ever deleting an edge:
+
+1. Build the precondition graph; condense it into its **strongly-connected
+   components** (a DAG of SCCs).
+2. **Between** SCCs — topological order; hard gating runs in dependency order.
+3. **Within** an SCC (a cycle) — there is no order, so run its members in a fixed
+   (registration) order each pass and let the loop converge them.
+4. **Merge into a single rule** only when the coupling must be consistent *within
+   one pass* (cannot be relaxed across passes), or when a given SCC converges
+   badly in practice.
+
+A *hard resolution* cycle — element X cannot be **built** until Y and vice versa
+— would be a true deadlock, but that is a WP1/S5 **builder** invariant, out of
+WP3 scope: rules do not build, so they cannot create one.
 
 ### Non-convergence must degrade gracefully
 
 Because every `Element` **always** carries a transform value, "unsettled" never
-means "un-drawable." If the loop hits its bound without settling, the driver
-emits the current best-effort geometry **plus diagnostics**, and the renderer
-draws it. Unsettled is a **quality / convergence signal, not a gate on output**.
+means "un-drawable." If the loop ends (all action budgets spent) without
+settling, the driver emits the current best-effort geometry **plus diagnostics**,
+and the renderer draws it. Unsettled is a **quality / convergence signal, not a gate on output**.
 (Contrast S5's separate `isResolved` flag: an *unresolved* node has only
 tentative geometry and is refused at the render boundary — that is a
 structural failure the builder/resolvers must not leave behind. "Settled" and
@@ -318,6 +459,70 @@ those results. Nothing new is persisted in the WP1 IR. (A forbidden overlap the
 engine has no rule for is therefore *not* detected here — the layout can be
 "settled but visually wrong"; finding such gaps is the regression harness's job,
 not the driver's.)
+
+## Diagnostics
+
+Because the driver **never blocks rendering** (best-effort output always — see
+"Non-convergence must degrade gracefully"), problems have to be *reported* rather
+than *thrown*, or they become invisible. Diagnostics are that report — the
+driver's structured output *besides* the laid-out tree, and the primary feedback
+loop for authoring rules.
+
+**One structured source of truth, multiple sinks.** The diagnostics "surface" is
+a **structured list of records**, not a log string or a picture. The file dump
+and the visual overlay are *sinks* that render those records — the same
+discipline as "settled is derived, not stored." Keeping the source of truth
+structured is what lets automated tests assert on it directly instead of parsing
+formatted text.
+
+### The record schema (WP3 owns this)
+
+A diagnostic record carries:
+
+- the **`(rule, scope, channel)`** key it pertains to (channel optional);
+- a **severity** (mapping onto `package:logging` levels — non-convergence and
+  validator flags → `WARNING`, suppression/tie-break traces → `FINE`);
+- a **residual** where meaningful (e.g. "0.3sp short of the required clearance");
+- a **location/bbox** — available *for free* from the absolute-transform index
+  the driver already maintains, so records carry spatial position without any
+  renderer involved;
+- an **opaque, typed rule-payload hook** carrying `categories / measurements /
+  positions / labels`. The driver does **not** interpret it — it just carries it
+  to the sinks. This is where a rule's own categorized diagnostics live (see
+  below).
+
+### What WP3 emits and ships
+
+- **Driver-level emission:** non-convergence (a `(rule, scope)` that spent its
+  action budget with its postcondition unsatisfied), budget exhaustion,
+  cascade-suppression traces, and peer/registration-order tie-break notices.
+- **A JSON/JSONL file sink** (via `package:logging` — file logging is a small
+  hand-written `onRecord` handler; the package has no built-in file output). One
+  JSON record per line, so the harness reads it parse-stably. Automated tests
+  assert on the **structured records** (or this JSONL), never on free-form log
+  text, which is brittle as a test oracle.
+- **A generic, semantically-agnostic visual overlay renderer.** It consumes the
+  schema and draws: element **bounding boxes** (flagged ones highlighted, with the
+  residual labelled — a *diagnostic-aware* overlay, not decorative), and, from the
+  rule-payload hook, **color-coded stacked measurement bars with a legend**
+  (inspired by VexFlow's per-column width breakdown: e.g. red = modifiers, green =
+  note+flag, with the anchor marked and a total label). The renderer never
+  understands the categories semantically — it just draws colored segments,
+  legends, text, and boxes from `(categories, measurements, positions, labels)`.
+  Because it depends only on the schema, it is built and **tested now against
+  synthetic/hand-authored records**, independent of any real rule.
+
+Building the overlay now (rather than deferring it) is deliberate: it **hardens
+the schema** by forcing a real consumer against it, and gives us a **complete
+verification toolset** before the rules arrive.
+
+### What is necessarily deferred
+
+Only what cannot exist yet: the **rule-contributed categorized content** that
+populates the payload hook (the actual width categories, clearances, etc.) comes
+with the rules in **WP5/WP6**. WP3 ships the hook and the renderer; the rules
+fill in the content, and the renderer may need minor extensions as real
+categories surface — expected and fine.
 
 ## Coupling to WP1
 
@@ -342,10 +547,14 @@ not the driver's.)
   declarative per-channel `apply`; validator-only flag).
 - The channel set and the per-channel cascade (gather → highest-specificity wins
   → suppress the rest → write local targets).
-- The pass driver: scheduling by dependency order, the cascade, bounded
-  iteration, index rebuild, settled detection, best-effort + diagnostics on
-  non-convergence.
+- The pass driver: scheduling by dependency order, the cascade, the per-(rule,
+  scope) action budget, damping, index rebuild, settled detection, best-effort +
+  diagnostics on non-convergence.
 - The (rule, scope) settledness report as derived, pass-local data.
+- The diagnostics toolset: the structured record schema (incl. the opaque
+  rule-payload hook), driver-level emission, a JSON/JSONL file sink, and the
+  generic visual overlay renderer (bounding boxes + color-coded measurement
+  bars/legend), tested against synthetic records.
 
 **Out:**
 - The WP4 selector grammar and the concrete **specificity metric** it induces
@@ -368,22 +577,44 @@ not the driver's.)
   to, i.e. **constraint weights**, which have the same inflation problem priority
   had and no natural common currency (how many sp of overlap = how many sp of
   misalignment?). Specificity avoids needing a common currency at all. (Damping
-  — cap movement per pass — remains on the table as cheap anti-overshoot
-  insurance; see below.)
+  is adopted as complementary anti-overshoot insurance — see "Bound + damping".)
+- **Bound + damping.** *Decided (starter values, to be tuned — see "Bound and
+  damping"):* action budget of **10 per `(rule, scope)`**, which alone guarantees
+  termination (finite total actions); and **damping factor 0.4** applied at the
+  driver's write step as `written = current + 0.4·(target − current)`, on
+  *continuous* channels only (transform + geometry), never on styling or the
+  discrete `glyph-identity`. Corollary: postconditions must be **ε-tolerance**
+  based, since damping only approaches a target asymptotically.
+- **Dependency cycles.** *Decided:* not a problem to fear (see "Dependency cycles
+  are handled by iteration"). Preconditions depend on *layout output*, not on
+  building, so mutual data-flow couplings (beam↔stem) exist — but a cyclic
+  coupling is a coupled fixed point the relaxation loop already solves, not a
+  deadlock. Gate only on *hard* prerequisites (input exists / resolved per S5,
+  which are a DAG); express convergence couplings as *hints*. The scheduler
+  condenses the precondition graph into SCCs: topological order between SCCs,
+  iterate within one; merge into a single rule only when a coupling must be
+  single-pass-consistent. Hard *resolution* cycles are a WP1/builder invariant,
+  out of scope.
+- **Diagnostics: format + delivery.** *Decided:* build the full toolset in WP3
+  (see "Diagnostics") — a structured record schema (driver records with
+  `(rule, scope, channel)`, severity, residual, and a bbox from the absolute
+  index, *plus* an opaque `categories/measurements/positions/labels` rule-payload
+  hook); driver-level emission; a JSON/JSONL file sink via `package:logging`; and
+  a generic, semantically-agnostic visual overlay renderer (bounding boxes +
+  color-coded measurement bars/legend) tested against synthetic records now.
+  Building the renderer now hardens the schema and gives a complete verification
+  toolset before rules exist. Only the *rule-contributed content* of the payload
+  hook is deferred to WP5/WP6 (it cannot exist until the rules do). *Note:* WP2
+  is closed, so this all lands in WP3 rather than the harness.
 
 ## Open design questions
 
 - **Coupled channels.** When must a rule win/lose a *group* of channels together
   rather than per-channel (e.g. move-right implies flip-flag)? Deferred until the
   first concrete rule needs it (see "Channels and the cascade").
-- **Dependency cycles.** Preconditions ideally form a DAG. What do we do if two
-  rules mutually depend (A needs B placed, B needs A placed)? Detect and break,
-  or express as a single combined rule?
-- **Bound + damping.** What iteration bound is realistic, and do we need damping
-  (limit how far a rule may move a symbol per pass) to guarantee progress rather
-  than oscillation within the bound?
+- **Tuning the bound + damping.** The values (10, 0.4) are placeholders; what do
+  real fixtures show, and should they be tuned per rule/channel rather than
+  globally?
 - **Dirty-tracking.** Rebuilding the full absolute index every pass is the
   correct default; when is per-subtree dirty-tracking worth the invalidation
   complexity? (Defer until profiled.)
-- **Diagnostics surface.** What shape do best-effort/non-convergence diagnostics
-  take, and how do they reach the visual-regression harness (WP2-S5)?
